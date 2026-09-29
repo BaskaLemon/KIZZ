@@ -106,6 +106,10 @@ export const api = {
     request<{ token: string; user: User }>('POST', '/auth/login', payload),
   logout: () => request('POST', '/auth/logout'),
   me: () => request<User>('GET', '/auth/me'),
+  updateProfile: (name: string) => request<User>('PATCH', '/me/profile', { name }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request('POST', '/me/password', { currentPassword, newPassword }),
+  deleteAccount: (password: string) => request('DELETE', '/me', { password }),
   updateAvatar: (options: AvatarOptions) =>
     request<{ avatarOptions: AvatarOptions }>('PATCH', '/me/avatar', options),
 
@@ -184,6 +188,10 @@ export const api = {
   deleteClassGroup: (id: string) => request('DELETE', `/class-groups/${id}`),
   getPeople: (classId: string) =>
     request<ClassPeople>('GET', `/classes/${classId}/people`),
+  setMemberAdmin: (classId: string, userId: string, admin: boolean) =>
+    request('PATCH', `/classes/${classId}/members/${userId}`, { admin }),
+  removeMember: (classId: string, userId: string) =>
+    request('DELETE', `/classes/${classId}/members/${userId}`),
   listMaterials: (classId: string) =>
     request<Material[]>('GET', `/classes/${classId}/materials`),
   uploadMaterial: (classId: string, file: File) =>

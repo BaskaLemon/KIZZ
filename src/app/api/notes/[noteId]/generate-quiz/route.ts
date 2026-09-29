@@ -5,6 +5,7 @@ import { notes, quizzes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessNote } from '@/lib/access';
 import { toQuiz } from '@/lib/mappers';
+import { rateLimit } from '@/lib/rateLimit';
 import { generateAiQuestions, isAiConfigured } from '@/lib/quiz/generateAi';
 import { generateRuleBasedQuestions } from '@/lib/quiz/generateRuleBased';
 import { isUuid } from '@/lib/uuid';
@@ -30,6 +31,9 @@ export async function POST(request: Request, { params }: Params) {
       { status: 404 },
     );
   }
+
+  const limited = rateLimit(`quizgen:${auth.user.id}`, 15, 10 * 60_000);
+  if (limited) return limited;
 
   const body = await request.json().catch(() => null);
   const count =

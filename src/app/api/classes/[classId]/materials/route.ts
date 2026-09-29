@@ -5,6 +5,8 @@ import { classMaterials } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
 import { classStudentIds, notifyUsers } from '@/lib/notifications';
+import { fileHasValidSignature } from '@/lib/fileSignature';
+import { rateLimit } from '@/lib/rateLimit';
 import { toMaterial } from '@/lib/mappers';
 import {
   insertMaterial,
@@ -62,6 +64,15 @@ export async function POST(request: Request, { params }: Params) {
   if (invalid) {
     return NextResponse.json({ error: invalid.error }, { status: invalid.status });
   }
+
+  if (!(await fileHasValidSignature(file as File))) {
+    return NextResponse.json(
+      { error: 'Файлын агуулга төрөлтэйгээ таарахгүй байна.' },
+      { status: 415 },
+    );
+  }
+  const limited = rateLimit(`upload:${auth.user.id}`, 30, 10 * 60_000);
+  if (limited) return limited;
 
   const row = await insertMaterial({
     classId,

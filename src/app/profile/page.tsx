@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { useAvatar } from '@/hooks/useAvatar';
 import { AvatarCustomizer } from '@/components/AvatarCustomizer';
 import { StreakCard } from '@/components/StreakCard';
+import { AccountSettings } from '@/components/AccountSettings';
 import { useMyStats } from '@/hooks/useMyStats';
 
 function joinedLabel(createdAt: string) {
@@ -126,6 +127,7 @@ export default function ProfilePage() {
             </Card>
           ))}
         </div>
+        <AccountSettings />
       </View>
 
       <AvatarCustomizer

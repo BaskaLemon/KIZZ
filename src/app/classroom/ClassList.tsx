@@ -49,7 +49,8 @@ function ClassCard({ user, c }: { user: User; c: Class }) {
 export default function ClassList({ user }: { user: User }) {
   const toast = useToast();
   const router = useRouter();
-  const [classes, setClasses] = useState<Class[] | null>(null);
+  const [allClasses, setClasses] = useState<Class[] | null>(null);
+  const [query, setQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [className, setClassName] = useState('');
@@ -65,6 +66,14 @@ export default function ClassList({ user }: { user: User }) {
         setClasses([]);
       });
   }, [toast]);
+
+  const classes = useMemo(
+    () =>
+      allClasses && query.trim()
+        ? allClasses.filter((c) => c.name.toLowerCase().includes(query.trim().toLowerCase()))
+        : allClasses,
+    [allClasses, query],
+  );
 
   // Folders are the owner's organizational tool; classes joined from others
   // come without a folder and land in the ungrouped list.
@@ -216,6 +225,15 @@ export default function ClassList({ user }: { user: User }) {
         </Card>
       )}
 
+      {allClasses !== null && allClasses.length > 4 && (
+        <TextInput
+          className="mb-4"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Бүлэг хайх..."
+          aria-label="Бүлэг хайх"
+        />
+      )}
       {classes === null ? (
         <SkeletonList />
       ) : classes.length === 0 ? (

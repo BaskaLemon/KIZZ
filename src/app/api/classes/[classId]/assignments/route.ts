@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessQuiz, getClassMembership } from '@/lib/access';
 import { toAssignment } from '@/lib/mappers';
 import { classStudentIds, notifyUsers } from '@/lib/notifications';
+import { fileHasValidSignature } from '@/lib/fileSignature';
 import { insertMaterial, validateMaterialFile } from '@/lib/materials';
 import { isUuid } from '@/lib/uuid';
 
@@ -150,6 +151,12 @@ export async function POST(request: Request, { params }: Params) {
     const invalid = validateMaterialFile(file);
     if (invalid) {
       return NextResponse.json({ error: invalid.error }, { status: invalid.status });
+    }
+    if (!(await fileHasValidSignature(file))) {
+      return NextResponse.json(
+        { error: 'Файлын агуулга төрөлтэйгээ таарахгүй байна.' },
+        { status: 415 },
+      );
     }
     const material = await insertMaterial({
       classId,

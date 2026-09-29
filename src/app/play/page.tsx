@@ -17,6 +17,7 @@ export default function PlayPage() {
   const toast = useToast();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [code, setCode] = useState('');
+  const [query, setQuery] = useState('');
   const [starting, setStarting] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
 
@@ -113,7 +114,17 @@ export default function PlayPage() {
                 </EmptyState>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {quizzes.map((q) => (
+                  {quizzes.length > 4 && (
+                    <TextInput
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Quiz хайх..."
+                      aria-label="Quiz хайх"
+                    />
+                  )}
+                  {quizzes
+                    .filter((q) => q.title.toLowerCase().includes(query.trim().toLowerCase()))
+                    .map((q) => (
                     <Card key={q.id} className="flex items-center justify-between rounded-lg">
                       <div className="min-w-0">
                         <h3 className="truncate text-base">{q.title}</h3>

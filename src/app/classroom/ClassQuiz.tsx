@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ClipboardList, Gamepad2, Trash2 } from 'lucide-react';
-import { Button, Card, EmptyState, SkeletonList } from '@/components/ui';
+import { Button, Card, EmptyState, SkeletonList, TextInput } from '@/components/ui';
 import { QuizGenButton } from '@/components/QuizGenButton';
 import { QuizPlayer } from '@/components/QuizPlayer';
 import { api } from '@/lib/api';
@@ -23,6 +23,7 @@ export function ClassQuiz({
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [starting, setStarting] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     Promise.all([api.listClassQuizzes(classId), api.listClassNotes(classId)])
@@ -83,7 +84,17 @@ export function ClassQuiz({
           </EmptyState>
         ) : (
           <div className="flex flex-col gap-3">
-            {quizzes.map((quiz) => (
+            {quizzes.length > 4 && (
+              <TextInput
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Quiz хайх..."
+                aria-label="Quiz хайх"
+              />
+            )}
+            {quizzes
+              .filter((q) => q.title.toLowerCase().includes(query.trim().toLowerCase()))
+              .map((quiz) => (
               <div
                 key={quiz.id}
                 className="flex items-center gap-3.5 rounded-lg border border-line bg-paper-raised p-4 shadow-sm transition-colors hover:border-violet/40"

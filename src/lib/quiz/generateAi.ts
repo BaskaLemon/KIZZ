@@ -4,6 +4,7 @@ import type { Question } from '@/lib/types';
 // load, so fall through to the next one on 404/429/5xx.
 const MODELS = ['gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite'];
 const MAX_NOTE_CHARS = 20_000;
+const PER_MODEL_TIMEOUT_MS = 18_000;
 
 export class AiNotConfiguredError extends Error {}
 
@@ -63,14 +64,21 @@ export async function generateAiQuestions(
 
   let res: Response | null = null;
   for (const model of MODELS) {
-    res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
-        body: requestBody,
-      },
-    );
+    try {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+          body: requestBody,
+          // A slow model shouldn't hang the request — move on to the next.
+          signal: AbortSignal.timeout(PER_MODEL_TIMEOUT_MS),
+        },
+      );
+    } catch {
+      res = null;
+      continue;
+    }
     if (res.ok) break;
     if (![404, 429, 500, 502, 503, 504].includes(res.status)) break;
   }

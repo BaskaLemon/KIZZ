@@ -80,6 +80,8 @@ export interface GameState {
   question: GameQuestionView | null;
   /** The caller's own chosen option for the current question, if any. */
   myAnswer: number | null;
+  /** How many players have answered the current question. */
+  answeredCount: number;
   players: { id: string; name: string; score: number }[];
 }
 
@@ -158,7 +160,7 @@ export interface AppNotification {
 }
 
 export interface ClassPeople {
-  /** Primary teacher first, then any co-teachers who joined by code. */
+  /** Owner first, then any co-admins the owner appointed. */
   teachers: { id: string; name: string; isPrimary: boolean }[];
   students: { id: string; name: string }[];
 }

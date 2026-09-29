@@ -41,6 +41,7 @@ export function ClassNotes({
   const [status, setStatus] = useState<SaveStatus>('saved');
   const [newTitle, setNewTitle] = useState('');
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState('');
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef({ title: '', content: '' });
   // updatedAt of the version our edits are based on (for conflict detection).
@@ -278,6 +279,15 @@ export function ClassNotes({
       </Card>
 
       <h3 className="mb-2.5 text-lg">Тэмдэглэлүүд</h3>
+      {notes !== null && notes.length > 4 && (
+        <TextInput
+          className="mb-3"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Тэмдэглэл хайх..."
+          aria-label="Тэмдэглэл хайх"
+        />
+      )}
       {notes === null ? (
         <SkeletonList />
       ) : notes.length === 0 ? (
@@ -290,7 +300,9 @@ export function ClassNotes({
         </EmptyState>
       ) : (
         <div className="flex flex-col gap-3">
-          {notes.map((note) => (
+          {notes
+            .filter((n) => n.title.toLowerCase().includes(query.trim().toLowerCase()))
+            .map((note) => (
             <button
               key={note.id}
               type="button"

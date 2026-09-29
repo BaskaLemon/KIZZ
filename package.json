@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "bun --env-file=.env.local run src/db/seed.ts"
+    "db:seed": "bun --env-file=.env.local run src/db/seed.ts",
+    "test:unit": "bun test src",
+    "test:e2e": "bun --env-file=.env.local run scripts/e2e.ts; bun --env-file=.env.local run scripts/e2e-cleanup.ts"
   },
   "dependencies": {
     "@dicebear/big-smile": "^9.4.2",
@@ -29,6 +31,7 @@
   "devDependencies": {
     "@testing-library/dom": "10.4.0",
     "@testing-library/react": "16.3.0",
+    "@types/bun": "^1.4.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.7.0",
     "@types/react": "^19.0.0",

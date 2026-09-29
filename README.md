@@ -1,38 +1,53 @@
-# kizz
+# KIZZ
 
-Оюутан/багшийн study app: анги, даалгавар, тэмдэглэл (файл хавсралттай), quiz, live тоглоом, shop, streak.
+Сурсан зүйлээ сорил болгоод, тоглоод бэхжүүл. Хэн ч (сурагч, оюутан, ажилтан, өөрөө суралцагч) ашиглаж болно.
 
-Next.js 16 + Drizzle ORM + Postgres. Auth нь JWT (`jose`), нууц үг `bcryptjs`.
+- **Хувийн тэмдэглэл** бичиж, PDF/зураг хавсаргана. Зөвхөн эзэнд харагдана.
+- **Quiz** үүсгэнэ: тэмдэглэлээс AI (Gemini) эсвэл дүрэмт аргаар, 3–20 асуулт.
+- **Шууд тоглоом**: өрөөний код, таймер, онооны самбар. Хугацаа дуусах эсвэл бүгд хариулахад хариу автоматаар харагдана.
+- **Бүлэг**: найз, баг, гэр бүл, ангийнхаа хүмүүстэй. Хэн ч үүсгэнэ, кодоор нэгдэнэ. Үүсгэсэн хүн админ (хамран админ томилж болно): хамтын тэмдэглэл, даалгавар, материал, дүн.
+- Мэдэгдэл, streak, coin, дэлгүүр, аватар.
+
+Next.js 16 · Drizzle ORM · Postgres · JWT (`jose`) · `bcryptjs`.
 
 ## Локал ажиллуулах
 
 ```bash
-cp .env.local.example .env.local   # DATABASE_URL, AUTH_SECRET бөглөнө
+cp .env.local.example .env.local   # DATABASE_URL, AUTH_SECRET (заавал), GEMINI_API_KEY (сонголт)
 bun install
 bun run db:migrate                 # хүснэгтүүд үүсгэнэ
-bun run db:seed                    # shop, streak, placement reward-ийн өгөгдөл (дахин ажиллуулахад аюулгүй)
+bun run db:seed                    # shop, streak, оноо олгох тохиргоо (дахин ажиллуулахад аюулгүй)
 bun run dev
 ```
+
+`AUTH_SECRET`: `openssl rand -base64 32`. `GEMINI_API_KEY` байхгүй бол quiz-ийн AI горим унтарч, дүрэмт горим л ажиллана
+([Google AI Studio](https://aistudio.google.com/apikey)-оос авна).
 
 ## Scripts
 
 | Script | Тайлбар |
 | --- | --- |
 | `dev` / `build` / `start` | Next.js |
-| `lint` / `typecheck` / `test` | Шалгалтууд |
+| `lint` / `typecheck` | Статик шалгалт |
+| `test:unit` | Unit тестүүд (`bun test src`) |
+| `test:e2e` | Ажиллаж буй сервер (`bun run start -p 3460`) дээр API-г эхнээс нь дуустал туршиж, дараа нь тестийн өгөгдлийг цэвэрлэнэ |
 | `db:generate` | Schema-с шинэ migration үүсгэнэ |
 | `db:migrate` | Migration-уудыг DB-д хэрэглэнэ |
 | `db:seed` | Анхны тохиргооны өгөгдөл оруулна |
 
+`test:e2e` нь `.env.local`-ийн DB дээр `e2e-*@example.test` хэрэглэгч үүсгэдэг тул **production DB-д бүү ажиллуул**.
+
 ## Deploy (Vercel + Supabase/Postgres)
 
-1. Postgres үүсгээд connection string-ийг авна (Supabase бол transaction pooler; `prepare: false` тохируулагдсан).
-2. Vercel дээр env оруулна: `DATABASE_URL`, `AUTH_SECRET` (`openssl rand -base64 32`), заавал биш `GEMINI_API_KEY` (quiz-ийн AI горим).
-3. Локалаас production DB рүү нэг удаа `bun run db:migrate && bun run db:seed` ажиллуулна.
-4. Deploy хийнэ (`bun run build`).
+1. Postgres үүсгээд connection string авна (Supabase бол transaction pooler; `prepare: false` тохируулагдсан).
+2. Vercel дээр env: `DATABASE_URL`, `AUTH_SECRET`, заавал биш `GEMINI_API_KEY`.
+3. Локалаас production DB рүү нэг удаа `bun run db:migrate && bun run db:seed`. Шинэ хувилбар бүрийн өмнө `db:migrate` дахин ажиллуулна.
+4. Deploy (`bun run build`).
 
-## Тэмдэглэл
+## Мэдэх ёстой зүйлс
 
-- Файлууд (ангийн материал, тэмдэглэлийн хавсралт) base64 хэлбэрээр Postgres-д хадгалагдана, файл бүр 3MB хүртэл (serverless request хязгаарт тааруулсан).
-- Мэдэгдэл (шинэ даалгавар, материал, ангид нэгдсэн) апп дотор, 60 секунд тутам шинэчлэгдэнэ.
-- Live тоглоом polling-оор ажиллана (custom socket server байхгүй тул Vercel дээр шууд ажиллана).
+- **Файл** (бүлгийн материал, тэмдэглэлийн хавсралт) base64 хэлбэрээр Postgres-д хадгалагдана, файл бүр 3MB хүртэл. Агуулга нь төрөлтэйгээ таарч байгаа эсэхийг шалгана. Өгөгдөл ихсэвэл Supabase Storage/S3 руу шилжүүлэх нь зүйтэй.
+- **Rate limit** (нэвтрэх, бүртгэх, upload, quiz үүсгэх, нууц үг) нь instance бүрийн санах ойд хадгалагддаг тул serverless дээр бүрэн хатуу хязгаар биш. Хатуу хязгаар хэрэгтэй бол Redis/Upstash-д холбоно.
+- **Live тоглоом, мэдэгдэл** polling-оор ажиллана (тоглоом 1.5 сек, мэдэгдэл 60 сек), тусдаа socket сервер шаардахгүй.
+- **Нууц үг сэргээх** (мартсан үед) байхгүй, имэйл үйлчилгээ холбогдоогүй. Нэвтэрсэн хэрэглэгч профайл дээрээ нууц үгээ солино.
+- Хуучин `users.role` багана DB-д үлдсэн (бүгд `student`), одоо ашиглагдахгүй.

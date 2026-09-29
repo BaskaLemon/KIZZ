@@ -154,8 +154,18 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const groupName = await resolveGroupName(row.groupId);
 
+  const [owner] = await db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, row.teacherId))
+    .limit(1);
+
   return NextResponse.json(
-    toClass(row, auth.user.name, { memberCount, groupName }),
+    toClass(row, owner?.name ?? '', {
+      memberCount,
+      groupName,
+      canManage: true,
+    }),
   );
 }
 

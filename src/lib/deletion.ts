@@ -1,18 +1,24 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import {
   assignments,
   classCoTeachers,
   classMaterials,
   classMembers,
+  classGroups,
   classes,
+  dailyStreaks,
   gameAnswers,
   gamePlayers,
   gameResults,
   gameSessions,
+  noteAttachments,
   notes,
+  pointTransactions,
   quizzes,
   submissions,
+  userInventory,
+  users,
 } from '@/db/schema';
 
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[0]>[0];
@@ -80,4 +86,70 @@ export async function removeClassMember(classId: string, userId: string) {
   await db
     .delete(classCoTeachers)
     .where(and(eq(classCoTeachers.classId, classId), eq(classCoTeachers.teacherId, userId)));
+}
+
+/** Permanently deletes an account and everything it owns. Content it
+ * contributed to other people's groups (shared notes, files) stays, handed
+ * over to that group's owner. */
+export async function deleteUserCascade(userId: string) {
+  const db = getDb();
+  const owned = await db
+    .select({ id: classes.id })
+    .from(classes)
+    .where(eq(classes.teacherId, userId));
+  for (const c of owned) await deleteClassCascade(c.id);
+
+  await db.transaction(async (tx) => {
+    // Live games: hosted by the user, or joined by the user.
+    const hosted = await tx
+      .select({ id: gameSessions.id })
+      .from(gameSessions)
+      .where(eq(gameSessions.createdBy, userId));
+    const hostedIds = hosted.map((g) => g.id);
+    const myPlayers = await tx
+      .select({ id: gamePlayers.id })
+      .from(gamePlayers)
+      .where(eq(gamePlayers.userId, userId));
+    const myPlayerIds = myPlayers.map((p) => p.id);
+    if (myPlayerIds.length > 0) {
+      await tx.delete(gameAnswers).where(inArray(gameAnswers.playerId, myPlayerIds));
+    }
+    if (hostedIds.length > 0) {
+      await tx.delete(gameAnswers).where(inArray(gameAnswers.gameSessionId, hostedIds));
+      await tx.delete(gameResults).where(inArray(gameResults.gameSessionId, hostedIds));
+      await tx.delete(gamePlayers).where(inArray(gamePlayers.gameSessionId, hostedIds));
+      await tx.delete(gameSessions).where(inArray(gameSessions.id, hostedIds));
+    }
+    await tx.delete(gameResults).where(eq(gameResults.userId, userId));
+    await tx.delete(gamePlayers).where(eq(gamePlayers.userId, userId));
+
+    // Personal quizzes and notes.
+    const myQuizzes = await tx
+      .select({ id: quizzes.id })
+      .from(quizzes)
+      .where(eq(quizzes.ownerId, userId));
+    const myQuizIds = myQuizzes.map((q) => q.id);
+    await deleteGamesForQuizzes(tx, myQuizIds);
+    if (myQuizIds.length > 0) {
+      await tx.delete(quizzes).where(inArray(quizzes.id, myQuizIds));
+    }
+    await tx.delete(notes).where(eq(notes.ownerId, userId));
+
+    // Contributions inside other people's groups.
+    await tx.delete(noteAttachments).where(eq(noteAttachments.uploadedBy, userId));
+    await tx.execute(sql`update class_materials set uploaded_by = c.teacher_id
+      from classes c where class_materials.class_id = c.id and class_materials.uploaded_by = ${userId}`);
+    await tx.execute(sql`update notes set updated_by = c.teacher_id
+      from classes c where notes.class_id = c.id and notes.updated_by = ${userId}`);
+
+    await tx.delete(submissions).where(eq(submissions.studentId, userId));
+    await tx.delete(classMembers).where(eq(classMembers.studentId, userId));
+    await tx.delete(classCoTeachers).where(eq(classCoTeachers.teacherId, userId));
+    await tx.delete(classGroups).where(eq(classGroups.teacherId, userId));
+    await tx.delete(pointTransactions).where(eq(pointTransactions.userId, userId));
+    await tx.delete(userInventory).where(eq(userInventory.userId, userId));
+    await tx.delete(dailyStreaks).where(eq(dailyStreaks.userId, userId));
+    // Notifications cascade with the user.
+    await tx.delete(users).where(eq(users.id, userId));
+  });
 }

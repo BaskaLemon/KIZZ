@@ -139,7 +139,7 @@ export default function ClassDetail({
 
         {activeTab === 'quiz' && <ClassQuiz classId={classId} isTeacher={isTeacher} />}
 
-        {activeTab === 'people' && <People classId={classId} />}
+        {activeTab === 'people' && <People classId={classId} canManage={isTeacher} isOwner={isOwner} />}
 
         {activeTab === 'marks' && (
           <ClassMarks assignments={assignments} isTeacher={isTeacher} />

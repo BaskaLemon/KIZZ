@@ -5,8 +5,12 @@ import { users } from '@/db/schema';
 import { hashPassword } from '@/lib/auth/password';
 import { signToken } from '@/lib/auth/token';
 import { toPublicUser } from '@/lib/auth/session';
+import { rateLimit, rateLimitKey } from '@/lib/rateLimit';
 
 export async function POST(request: Request) {
+  const limited = rateLimit(rateLimitKey('signup', request), 10, 10 * 60_000);
+  if (limited) return limited;
+
   const body = await request.json().catch(() => null);
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
   const email =

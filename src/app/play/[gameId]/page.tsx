@@ -97,6 +97,21 @@ export default function PlayGamePage({
     return () => clearTimeout(id);
   }, [isHost, activeUnrevealed, startedAt, gameId]);
 
+  // Everyone has answered → no reason to wait out the timer.
+  const answeredCount = state?.answeredCount ?? 0;
+  const playerCount = state?.players.length ?? 0;
+  const questionIndex = state?.currentQuestionIndex ?? 0;
+  useEffect(() => {
+    if (!isHost || !activeUnrevealed || playerCount === 0) return;
+    if (answeredCount < playerCount) return;
+    api
+      .revealGame(gameId)
+      .then(setState)
+      .catch(() => {
+        // Already revealed — the next poll picks that up.
+      });
+  }, [isHost, activeUnrevealed, answeredCount, playerCount, questionIndex, gameId]);
+
   async function act<T>(fn: () => Promise<T>) {
     setBusy(true);
     try {
@@ -175,7 +190,8 @@ export default function PlayGamePage({
                 Хариу харуулах
               </Button>
               <p className="text-sm text-stage-text-soft">
-                Хугацаа дуусахад хариу автоматаар харагдана.
+                {state.answeredCount} / {state.players.length} хариулсан ·
+                хүн бүр хариулах эсвэл хугацаа дуусахад хариу автоматаар харагдана.
               </p>
             </>
           ) : (

@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { gameAnswers, gamePlayers, gameSessions, quizzes, users } from '@/db/schema';
 import type { GameState } from '@/lib/types';
@@ -57,8 +57,19 @@ export async function loadGameState(
     myAnswer = mine ? mine.optionIndex : null;
   }
 
+  let answeredCount = 0;
   let question: GameState['question'] = null;
   if (session.status === 'active') {
+    const [{ value }] = await db
+      .select({ value: count() })
+      .from(gameAnswers)
+      .where(
+        and(
+          eq(gameAnswers.gameSessionId, gameSessionId),
+          eq(gameAnswers.questionIndex, session.currentQuestionIndex),
+        ),
+      );
+    answeredCount = value;
     const q = quiz.questions[session.currentQuestionIndex];
     question = { prompt: q.prompt, options: q.options };
     if (session.revealed) {
@@ -91,6 +102,7 @@ export async function loadGameState(
     revealed: session.revealed,
     question,
     myAnswer,
+    answeredCount,
     players: playerRows.map((p) => ({ id: p.id, name: p.name, score: p.score })),
   };
 }
