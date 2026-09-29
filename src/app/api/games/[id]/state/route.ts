@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/requireUser';
 import { loadGameState } from '@/lib/game';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -9,6 +10,9 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { id } = await params;
+  if (!isUuid(id)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const state = await loadGameState(id, auth.user.id);
   if (!state) {

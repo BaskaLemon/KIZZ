@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessNote } from '@/lib/access';
 import { toNote } from '@/lib/mappers';
 import { resolveUserNames } from '@/lib/userNames';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ noteId: string }> };
 
@@ -29,6 +30,9 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { noteId } = await params;
+  if (!isUuid(noteId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const { note, allowed } = await loadAccessibleNote(noteId, auth.user.id);
   if (!note || !allowed) {
@@ -46,6 +50,9 @@ export async function PATCH(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { noteId } = await params;
+  if (!isUuid(noteId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const { note, allowed } = await loadAccessibleNote(noteId, auth.user.id);
   if (!note || !allowed) {
@@ -114,4 +121,26 @@ export async function PATCH(request: Request, { params }: Params) {
     .returning();
 
   return NextResponse.json(toNote(row, auth.user.name));
+}
+
+/** Any member who can edit a shared note can delete it; a personal note
+ * only ever belongs to its owner. Quizzes made from it are kept. */
+export async function DELETE(request: Request, { params }: Params) {
+  const auth = await requireUser(request);
+  if (auth.error) return auth.error;
+  const { noteId } = await params;
+  if (!isUuid(noteId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
+
+  const { note, allowed } = await loadAccessibleNote(noteId, auth.user.id);
+  if (!note || !allowed) {
+    return NextResponse.json(
+      { error: 'Тэмдэглэл олдсонгүй.' },
+      { status: 404 },
+    );
+  }
+
+  await getDb().delete(notes).where(eq(notes.id, noteId));
+  return NextResponse.json({ ok: true });
 }

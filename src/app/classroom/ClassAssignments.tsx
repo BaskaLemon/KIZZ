@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, ClipboardList, Plus, X } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Plus, Trash2, X } from 'lucide-react';
 import { Button, Card, EmptyState, Field, TextInput } from '@/components/ui';
 import { AttachmentLink } from '@/components/AttachmentLink';
 import { useAppState } from '@/lib/appState';
@@ -71,6 +71,19 @@ export function ClassAssignments({
       toast((err as ApiError).payload?.error || 'Алдаа гарлаа', 'error');
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function deleteAssignment(a: Assignment) {
+    const n = a.submissionCount ?? 0;
+    const warn = n > 0 ? ` ${n} гишүүний илгээлт бас устна.` : '';
+    if (!window.confirm(`"${a.title}" даалгаврыг устгах уу?${warn}`)) return;
+    try {
+      await api.deleteAssignment(a.id);
+      toast('Даалгавар устгагдлаа');
+      onCreated();
+    } catch (err) {
+      toast((err as ApiError).payload?.error || 'Устгахад алдаа гарлаа', 'error');
     }
   }
 
@@ -152,7 +165,7 @@ export function ClassAssignments({
           <p>
             {isTeacher
               ? 'Дээрх товчоор анхны даалгавраа өгөөрэй.'
-              : 'Багш даалгавар өгмөгц энд харагдана.'}
+              : 'Админ даалгавар өгмөгц энд харагдана.'}
           </p>
         </EmptyState>
       ) : (
@@ -186,6 +199,15 @@ export function ClassAssignments({
                   <span className="shrink-0 rounded-full bg-paper px-3 py-1.5 text-[13px] font-semibold text-ink-soft">
                     {a.submissionCount ?? 0} илгээсэн
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => deleteAssignment(a)}
+                    aria-label={`${a.title} устгах`}
+                    title="Устгах"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-coral/10 hover:text-coral"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </Card>
             ) : (

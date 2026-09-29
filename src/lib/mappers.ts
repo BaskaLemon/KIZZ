@@ -50,6 +50,7 @@ export const toQuiz = (row: QuizRow): Quiz => ({
   groupId: row.groupId,
   classId: row.classId,
   sourceNoteId: row.sourceNoteId,
+  ownerId: row.ownerId,
   title: row.title,
   questions: row.questions,
   generatedBy: row.generatedBy,
@@ -64,7 +65,11 @@ export const toGameSession = (row: GameSessionRow): GameSession => ({
 export const toClass = (
   row: ClassRow,
   teacherName: string,
-  extra?: { memberCount?: number; groupName?: string | null },
+  extra?: {
+    memberCount?: number;
+    groupName?: string | null;
+    canManage?: boolean;
+  },
 ): Class => ({
   id: row.id,
   name: row.name,
@@ -80,6 +85,7 @@ export const toClass = (
   groupName: extra?.groupName ?? null,
   createdAt: row.createdAt.toISOString(),
   memberCount: extra?.memberCount,
+  canManage: extra?.canManage,
 });
 
 export const toClassGroup = (row: ClassGroupRow): ClassGroup => ({

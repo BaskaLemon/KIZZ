@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { classGroups } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ groupId: string }> };
 
@@ -12,6 +13,9 @@ export async function DELETE(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { groupId } = await params;
+  if (!isUuid(groupId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const db = getDb();
   const [existing] = await db

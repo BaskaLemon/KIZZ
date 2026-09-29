@@ -27,7 +27,7 @@ export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
       <>
         <p className="font-bold text-violet">
           {assignment.mySubmission.score === null
-            ? 'Та энэ даалгаврыг илгээсэн байна. Багш дүн оруулах хүлээгдэж байна.'
+            ? 'Та энэ даалгаврыг илгээсэн байна. Админ дүн оруулахыг хүлээж байна.'
             : `Та энэ даалгаврыг ${assignment.mySubmission.score}% дүнтэй дуусгасан байна.`}
         </p>
         <p className="text-[13px] text-ink-soft">
@@ -66,7 +66,7 @@ export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
         </Button>
         {result && (
           <p className="mt-1 font-bold text-violet">
-            Илгээгдлээ. Багш дүн оруулах хүлээгдэж байна.
+            Илгээгдлээ. Админ дүн оруулахыг хүлээж байна.
           </p>
         )}
       </div>

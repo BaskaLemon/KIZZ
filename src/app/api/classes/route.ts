@@ -12,13 +12,6 @@ export async function POST(request: Request) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
 
-  if (auth.user.role !== 'teacher') {
-    return NextResponse.json(
-      { error: 'Зөвхөн багш анги үүсгэх боломжтой.' },
-      { status: 403 },
-    );
-  }
-
   const body = await request.json().catch(() => null);
   const name = typeof body?.name === 'string' ? body.name.trim() : '';
   if (!name) {

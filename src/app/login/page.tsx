@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Button, Field, TextInput } from '@/components/ui';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useMounted } from '@/hooks/useMounted';
 import { cx } from '@/lib/cx';
@@ -12,12 +13,12 @@ import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
 import { api } from '@/lib/api';
 import { ApiError } from '@/lib/types';
-import type { Role } from '@/lib/types';
 
 type Mode = 'signin' | 'signup';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const { user, ready, setSession } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -27,11 +28,12 @@ export default function LoginPage() {
   const mounted = useMounted();
   const logoSrc = mounted && resolvedTheme === 'dark' ? '/logo2.jpeg' : '/logo.jpeg';
 
-  const [mode, setMode] = useState<Mode>('signin');
+  const [mode, setMode] = useState<Mode>(
+    searchParams.get('mode') === 'signup' ? 'signup' : 'signin',
+  );
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>('student');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function LoginPage() {
       const { token, user: nextUser } =
         mode === 'signin'
           ? await api.login({ email, password })
-          : await api.signup({ name, email, password, role });
+          : await api.signup({ name, email, password });
       setSession(token, nextUser);
       router.push('/');
     } catch (err) {
@@ -144,28 +146,6 @@ export default function LoginPage() {
               />
             </Field>
 
-            {mode === 'signup' && (
-              <Field label="Та хэн бэ?">
-                <div className="flex gap-2">
-                  {(['student', 'teacher'] as const).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRole(r)}
-                      className={cx(
-                        'flex-1 rounded-xl border py-2.5 text-[15px] font-semibold transition-colors',
-                        role === r
-                          ? 'border-transparent bg-mint text-white'
-                          : 'border-line text-ink-soft hover:border-ink/25',
-                      )}
-                    >
-                      {r === 'student' ? 'Сурагч' : 'Багш'}
-                    </button>
-                  ))}
-                </div>
-              </Field>
-            )}
-
             <Button
               type="submit"
               variant="primary"
@@ -210,5 +190,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoadingScreen fullScreen />}>
+      <LoginForm />
+    </Suspense>
   );
 }

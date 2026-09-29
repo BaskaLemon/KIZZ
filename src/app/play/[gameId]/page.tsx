@@ -74,6 +74,29 @@ export default function PlayGamePage({
     return () => clearInterval(id);
   }, [state?.questionStartedAt, state?.status, state?.revealed]);
 
+  // The host's client reveals the answer automatically once time is up, so
+  // the game keeps moving without an extra click every question.
+  const isHost = state?.isHost;
+  const startedAt = state?.questionStartedAt;
+  const activeUnrevealed = state?.status === 'active' && !state.revealed;
+  useEffect(() => {
+    if (!isHost || !activeUnrevealed || !startedAt) return;
+    const remaining =
+      new Date(startedAt).getTime() + ANSWER_WINDOW_MS - Date.now();
+    const id = setTimeout(
+      () => {
+        api
+          .revealGame(gameId)
+          .then(setState)
+          .catch(() => {
+            // Already revealed manually — the next poll picks that up.
+          });
+      },
+      Math.max(remaining, 0) + 400,
+    );
+    return () => clearTimeout(id);
+  }, [isHost, activeUnrevealed, startedAt, gameId]);
+
   async function act<T>(fn: () => Promise<T>) {
     setBusy(true);
     try {
@@ -134,7 +157,7 @@ export default function PlayGamePage({
               Тоглоом эхлүүлэх
             </Button>
           ) : (
-            <p className="text-stage-text-soft">Багш эхлүүлэхийг хүлээж байна...</p>
+            <p className="text-stage-text-soft">Тоглоомыг эхлүүлэхийг хүлээж байна...</p>
           )}
         </div>
       )}
@@ -151,6 +174,9 @@ export default function PlayGamePage({
               <Button variant="primary" onClick={handleReveal} disabled={busy}>
                 Хариу харуулах
               </Button>
+              <p className="text-sm text-stage-text-soft">
+                Хугацаа дуусахад хариу автоматаар харагдана.
+              </p>
             </>
           ) : (
             <AnswerGrid>

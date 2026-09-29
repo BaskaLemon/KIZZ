@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Shell, View } from '@/components/Shell';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { EmptyState, LinkButton } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import ClassList from './ClassList';
@@ -22,7 +23,12 @@ export default function ClassroomView() {
   const classId = searchParams.get('classId');
   const tab = searchParams.get('tab');
 
-  if (!ready) return null;
+  if (!ready)
+    return (
+      <Shell activePath="/classroom">
+        <LoadingScreen />
+      </Shell>
+    );
 
   if (!user) {
     return (
@@ -30,7 +36,7 @@ export default function ClassroomView() {
         <View narrow>
           <EmptyState title="Эхлээд нэвтэрнэ үү">
             <p>
-              Ангийн танхим ашиглахын тулд багш эсвэл сурагчаар бүртгэл хийх
+              Бүлгүүд ашиглахын тулд бүртгэл хийх
               шаардлагатай.
             </p>
             <LinkButton href="/login" variant="primary" className="mt-4">

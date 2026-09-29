@@ -80,6 +80,8 @@ export const notes = pgTable('notes', {
   // teacher + enrolled students. Both nullable so either path works.
   groupId: uuid('group_id').references(() => groups.id),
   classId: uuid('class_id').references(() => classes.id),
+  // Set for a personal note (no group/class) — only its owner can see it.
+  ownerId: uuid('owner_id').references(() => users.id),
   title: text('title').notNull(),
   content: text('content').notNull().default(''),
   updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -140,9 +142,12 @@ export const quizzes = pgTable('quizzes', {
   // source note had.
   groupId: uuid('group_id').references(() => groups.id),
   classId: uuid('class_id').references(() => classes.id),
-  sourceNoteId: uuid('source_note_id')
-    .notNull()
-    .references(() => notes.id),
+  // Set for a quiz made from a personal note.
+  ownerId: uuid('owner_id').references(() => users.id),
+  // Null once the source note is deleted — the quiz outlives it.
+  sourceNoteId: uuid('source_note_id').references(() => notes.id, {
+    onDelete: 'set null',
+  }),
   title: text('title').notNull(),
   questions: jsonb('questions').notNull().$type<Question[]>(),
   generatedBy: text('generated_by', { enum: ['ai', 'rule-based'] }).notNull(),

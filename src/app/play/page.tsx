@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play } from 'lucide-react';
+import { Play, Trash2 } from 'lucide-react';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Shell, View } from '@/components/Shell';
-import { Button, Card, EmptyState, TextInput } from '@/components/ui';
+import { Button, Card, EmptyState, LinkButton, TextInput } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { useAppState } from '@/lib/appState';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import type { ApiError, Quiz } from '@/lib/types';
@@ -15,20 +15,18 @@ export default function PlayPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const toast = useToast();
-  const [group] = useAppState('group');
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [code, setCode] = useState('');
   const [starting, setStarting] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    if (group) {
-      api
-        .listQuizzes(group.id)
-        .then(setQuizzes)
-        .catch(() => setQuizzes([]));
-    }
-  }, [group]);
+    if (!user) return;
+    api
+      .listMyQuizzes()
+      .then(setQuizzes)
+      .catch(() => setQuizzes([]));
+  }, [user]);
 
   async function hostGame(quizId: string) {
     setStarting(quizId);
@@ -39,6 +37,17 @@ export default function PlayPage() {
       toast((err as ApiError).payload?.error || 'Тоглоом үүсгэхэд алдаа гарлаа', 'error');
     } finally {
       setStarting(null);
+    }
+  }
+
+  async function deleteQuiz(quiz: Quiz) {
+    if (!window.confirm(`"${quiz.title}" quiz-ийг устгах уу? Үүнийг буцаах боломжгүй.`)) return;
+    try {
+      await api.deleteQuiz(quiz.id);
+      setQuizzes((prev) => prev.filter((q) => q.id !== quiz.id));
+      toast('Quiz устгагдлаа');
+    } catch (err) {
+      toast((err as ApiError).payload?.error || 'Устгахад алдаа гарлаа', 'error');
     }
   }
 
@@ -56,7 +65,12 @@ export default function PlayPage() {
     }
   }
 
-  if (!ready) return null;
+  if (!ready)
+    return (
+      <Shell activePath="/play">
+        <LoadingScreen />
+      </Shell>
+    );
 
   return (
     <Shell activePath="/play">
@@ -93,6 +107,9 @@ export default function PlayPage() {
               {quizzes.length === 0 ? (
                 <EmptyState title="Quiz алга">
                   <p>Тэмдэглэлээсээ quiz үүсгэсний дараа энд харагдана.</p>
+                  <LinkButton href="/notes" variant="primary" className="mt-4">
+                    Тэмдэглэл рүү очих →
+                  </LinkButton>
                 </EmptyState>
               ) : (
                 <div className="flex flex-col gap-3">
@@ -104,6 +121,17 @@ export default function PlayPage() {
                           {q.questions.length} асуулт
                         </p>
                       </div>
+                      {q.ownerId === user.id && (
+                        <button
+                          type="button"
+                          onClick={() => deleteQuiz(q)}
+                          aria-label={`${q.title} устгах`}
+                          title="Устгах"
+                          className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-coral/10 hover:text-coral"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                       <Button
                         variant="primary"
                         onClick={() => hostGame(q.id)}

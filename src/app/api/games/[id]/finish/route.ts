@@ -4,6 +4,7 @@ import { getDb } from '@/db/client';
 import { gameSessions } from '@/db/schema';
 import { getAuthenticatedUser } from '@/lib/auth/session';
 import { awardPlacementPoints, type PlacementInput } from '@/lib/points/placement';
+import { isUuid } from '@/lib/uuid';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -42,6 +43,12 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   const { id } = await params;
 
+  if (!isUuid(id)) {
+
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+
+  }
+
   const [session] = await getDb()
     .select()
     .from(gameSessions)
@@ -52,7 +59,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
   if (session.createdBy !== user.id) {
     return NextResponse.json(
-      { error: 'Зөвхөн тоглоом эхлүүлсэн багш дуусгах боломжтой.' },
+      { error: 'Зөвхөн тоглоомыг эхлүүлсэн хүн дуусгах боломжтой.' },
       { status: 403 },
     );
   }

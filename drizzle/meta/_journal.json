@@ -64,6 +64,20 @@
       "when": 1790697049291,
       "tag": "0008_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790699188118,
+      "tag": "0009_personal_notes_quizzes",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790701293858,
+      "tag": "0010_quiz_survives_note_delete",
+      "breakpoints": true
     }
   ]
 }

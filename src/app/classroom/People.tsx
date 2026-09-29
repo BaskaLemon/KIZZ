@@ -33,29 +33,29 @@ export function People({ classId }: { classId: string }) {
       .catch((err: ApiError) => {
         toast(err.payload?.error || 'Гишүүдийг ачаалж чадсангүй', 'error');
       });
-  }, [classId]);
+  }, [classId, toast]);
 
   if (!people) return null;
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h3 className="mb-2.5 text-lg">Багш нар</h3>
+        <h3 className="mb-2.5 text-lg">Админууд</h3>
         <div className="rounded-md border-[2.5px] border-ink bg-paper-raised px-5 py-1 shadow-pop-md">
           {people.teachers.map((t) => (
             <PersonRow
               key={t.id}
               name={t.name}
-              badge={t.isPrimary ? undefined : 'Хамтран багш'}
+              badge={t.isPrimary ? undefined : 'Хамтран админ'}
             />
           ))}
         </div>
       </div>
 
       <div>
-        <h3 className="mb-2.5 text-lg">Сурагчид</h3>
+        <h3 className="mb-2.5 text-lg">Гишүүд</h3>
         {people.students.length === 0 ? (
-          <p className="text-ink-soft">Одоогоор сурагч алга.</p>
+          <p className="text-ink-soft">Одоогоор гишүүн алга.</p>
         ) : (
           <div className="rounded-md border-[2.5px] border-ink bg-paper-raised px-5 py-1 shadow-pop-md">
             {people.students.map((s) => (

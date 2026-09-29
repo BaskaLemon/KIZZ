@@ -11,6 +11,7 @@ import {
   noteAttachmentColumns,
   validateNoteAttachment,
 } from '@/lib/noteAttachments';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ noteId: string }> };
 
@@ -31,6 +32,9 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { noteId } = await params;
+  if (!isUuid(noteId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
   if (!(await loadNote(noteId, auth.user.id))) return notFound();
 
   const rows = await getDb()
@@ -45,6 +49,9 @@ export async function POST(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { noteId } = await params;
+  if (!isUuid(noteId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
   if (!(await loadNote(noteId, auth.user.id))) return notFound();
 
   const formData = await request.formData().catch(() => null);

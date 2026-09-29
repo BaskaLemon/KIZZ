@@ -34,6 +34,11 @@ export const materialColumns = {
   createdAt: classMaterials.createdAt,
 };
 
+/** Strips parameters such as `;charset=utf-8` from a MIME type. */
+export function normalizeMime(type: string): string {
+  return type.split(';')[0].trim().toLowerCase() || 'application/octet-stream';
+}
+
 export type MaterialValidationError = {
   error: string;
   status: number;
@@ -56,7 +61,7 @@ export function validateMaterialFile(
       status: 413,
     };
   }
-  const mimeType = file.type || 'application/octet-stream';
+  const mimeType = normalizeMime(file.type);
   if (!ALLOWED_MATERIAL_TYPES.has(mimeType)) {
     return { error: 'Энэ төрлийн файлыг дэмжихгүй байна.', status: 415 };
   }
@@ -78,7 +83,7 @@ export async function insertMaterial(params: {
       classId,
       uploadedBy,
       fileName: file.name.slice(0, 255) || 'file',
-      mimeType: file.type || 'application/octet-stream',
+      mimeType: normalizeMime(file.type),
       sizeBytes: file.size,
       data: buffer.toString('base64'),
     })

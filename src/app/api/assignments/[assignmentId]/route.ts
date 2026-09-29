@@ -4,8 +4,10 @@ import { getDb } from '@/db/client';
 import { assignments, quizzes, submissions } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
+import { deleteAssignmentCascade } from '@/lib/deletion';
 import { toAssignment, toQuiz, toSubmission } from '@/lib/mappers';
 import type { AssignmentDetail } from '@/lib/types';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ assignmentId: string }> };
 
@@ -13,6 +15,9 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { assignmentId } = await params;
+  if (!isUuid(assignmentId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const db = getDb();
   const [assignment] = await db
@@ -71,4 +76,39 @@ export async function GET(request: Request, { params }: Params) {
     mySubmission,
   };
   return NextResponse.json(detail);
+}
+
+export async function DELETE(request: Request, { params }: Params) {
+  const auth = await requireUser(request);
+  if (auth.error) return auth.error;
+  const { assignmentId } = await params;
+  if (!isUuid(assignmentId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
+
+  const [assignment] = await getDb()
+    .select({ id: assignments.id, classId: assignments.classId })
+    .from(assignments)
+    .where(eq(assignments.id, assignmentId))
+    .limit(1);
+  if (!assignment) {
+    return NextResponse.json(
+      { error: 'Даалгавар олдсонгүй.' },
+      { status: 404 },
+    );
+  }
+
+  const { isTeacher } = await getClassMembership(
+    assignment.classId,
+    auth.user.id,
+  );
+  if (!isTeacher) {
+    return NextResponse.json(
+      { error: 'Зөвхөн бүлгийн админ даалгавар устгах боломжтой.' },
+      { status: 403 },
+    );
+  }
+
+  await deleteAssignmentCascade(assignmentId);
+  return NextResponse.json({ ok: true });
 }

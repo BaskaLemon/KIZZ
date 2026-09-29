@@ -12,10 +12,8 @@ export async function POST(request: Request) {
   const email =
     typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
   const password = typeof body?.password === 'string' ? body.password : '';
-  const role =
-    body?.role === 'teacher' || body?.role === 'student' ? body.role : null;
 
-  if (!name || !email || !password || !role) {
+  if (!name || !email || !password) {
     return NextResponse.json(
       { error: 'Бүх талбарыг бөглөнө үү.' },
       { status: 400 },
@@ -44,7 +42,7 @@ export async function POST(request: Request) {
   const passwordHash = await hashPassword(password);
   const [row] = await dbClient
     .insert(users)
-    .values({ name, email, passwordHash, role })
+    .values({ name, email, passwordHash, role: 'student' })
     .returning();
 
   const token = await signToken(row.id);

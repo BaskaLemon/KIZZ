@@ -7,6 +7,7 @@ import { canAccessQuiz, getClassMembership } from '@/lib/access';
 import { toAssignment } from '@/lib/mappers';
 import { classStudentIds, notifyUsers } from '@/lib/notifications';
 import { insertMaterial, validateMaterialFile } from '@/lib/materials';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ classId: string }> };
 
@@ -14,13 +15,16 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { classId } = await params;
+  if (!isUuid(classId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const { klass, isMember, isTeacher } = await getClassMembership(
     classId,
     auth.user.id,
   );
   if (!klass || !isMember) {
-    return NextResponse.json({ error: 'Анги олдсонгүй.' }, { status: 404 });
+    return NextResponse.json({ error: 'Бүлэг олдсонгүй.' }, { status: 404 });
   }
 
   const db = getDb();
@@ -78,14 +82,17 @@ export async function POST(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { classId } = await params;
+  if (!isUuid(classId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const { klass, isTeacher } = await getClassMembership(classId, auth.user.id);
   if (!klass) {
-    return NextResponse.json({ error: 'Анги олдсонгүй.' }, { status: 404 });
+    return NextResponse.json({ error: 'Бүлэг олдсонгүй.' }, { status: 404 });
   }
   if (!isTeacher) {
     return NextResponse.json(
-      { error: 'Зөвхөн ангийн багш даалгавар өгөх боломжтой.' },
+      { error: 'Зөвхөн бүлгийн админ даалгавар өгөх боломжтой.' },
       { status: 403 },
     );
   }
@@ -111,12 +118,25 @@ export async function POST(request: Request, { params }: Params) {
   // a group the teacher is actually in.
   if (quizId) {
     const [quiz] = await db
-      .select({ id: quizzes.id, groupId: quizzes.groupId, classId: quizzes.classId })
+      .select({
+        id: quizzes.id,
+        groupId: quizzes.groupId,
+        classId: quizzes.classId,
+        ownerId: quizzes.ownerId,
+      })
       .from(quizzes)
       .where(eq(quizzes.id, quizId))
       .limit(1);
     if (!quiz || !(await canAccessQuiz(quiz, auth.user.id))) {
       return NextResponse.json({ error: 'Quiz олдсонгүй.' }, { status: 404 });
+    }
+    if (quiz.ownerId) {
+      // A personal quiz is only visible to its owner, so the class couldn't
+      // open it.
+      return NextResponse.json(
+        { error: 'Хувийн quiz-ийг даалгаварт хавсаргах боломжгүй. Ангийн тэмдэглэлээс quiz үүсгэнэ үү.' },
+        { status: 400 },
+      );
     }
   }
 

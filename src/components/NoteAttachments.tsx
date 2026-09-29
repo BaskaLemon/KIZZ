@@ -69,6 +69,7 @@ export function NoteAttachments({ noteId }: { noteId: string }) {
   }
 
   async function remove(item: NoteAttachment) {
+    if (!window.confirm(`"${item.fileName}" файлыг устгах уу?`)) return;
     try {
       await api.deleteNoteAttachment(item.id);
       setItems((prev) => prev.filter((x) => x.id !== item.id));

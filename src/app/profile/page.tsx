@@ -3,22 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, CalendarDays, Pencil } from 'lucide-react';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Shell, View } from '@/components/Shell';
 import { Button, Card, EmptyState, LinkButton } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useAvatar } from '@/hooks/useAvatar';
 import { AvatarCustomizer } from '@/components/AvatarCustomizer';
 import { StreakCard } from '@/components/StreakCard';
-
-const STATS = [
-  { label: 'Миний ангиуд', value: 0 },
-  { label: 'Үүсгэсэн quiz', value: 0 },
-  { label: 'Бичсэн тэмдэглэл', value: 0 },
-];
-
-function roleLabel(role: 'teacher' | 'student') {
-  return role === 'teacher' ? 'Багш' : 'Сурагч';
-}
+import { useMyStats } from '@/hooks/useMyStats';
 
 function joinedLabel(createdAt: string) {
   const date = new Date(createdAt);
@@ -30,8 +22,19 @@ export default function ProfilePage() {
   const { user, ready, logout } = useAuth();
   const { options, avatarUri, saveOptions, saving } = useAvatar();
   const [customizerOpen, setCustomizerOpen] = useState(false);
+  const myStats = useMyStats(!!user);
+  const STATS = [
+    { label: 'Миний бүлгүүд', value: myStats?.groups },
+    { label: 'Үүсгэсэн quiz', value: myStats?.quizzes },
+    { label: 'Бичсэн тэмдэглэл', value: myStats?.notes },
+  ];
 
-  if (!ready) return null;
+  if (!ready)
+    return (
+      <Shell activePath="/profile">
+        <LoadingScreen />
+      </Shell>
+    );
 
   if (!user) {
     return (
@@ -74,9 +77,6 @@ export default function ProfilePage() {
             </button>
             <div>
               <p className="text-xl font-bold text-ink">{user.name}</p>
-              <span className="mt-2 inline-block rounded-full bg-mint px-3 py-1 text-xs font-semibold text-white">
-                {roleLabel(user.role)}
-              </span>
             </div>
           </div>
 
@@ -118,7 +118,7 @@ export default function ProfilePage() {
           {STATS.map((stat) => (
             <Card key={stat.label}>
               <p className="text-4xl font-extrabold text-ink">
-                {stat.value}
+                {stat.value ?? '–'}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">
                 {stat.label}

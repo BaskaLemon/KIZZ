@@ -189,6 +189,26 @@ export function Textarea({
   );
 }
 
+/** Pulsing placeholder shown while a list loads. */
+export function Skeleton({ className }: { className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={cx('animate-pulse rounded-lg bg-ink/10', className)}
+    />
+  );
+}
+
+export function SkeletonList({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="flex flex-col gap-3" role="status" aria-label="Ачаалж байна">
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className="h-[72px]" />
+      ))}
+    </div>
+  );
+}
+
 export function EmptyState({
   title,
   children,

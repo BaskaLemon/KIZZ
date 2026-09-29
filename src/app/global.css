@@ -9,7 +9,7 @@
   --color-ink-soft: #6b6458;
   --color-line: rgba(21, 18, 32, 0.14);
 
-  --color-violet: #f2811a;
+  --color-violet: #c2570a;
   --color-mint: #10b981;
   --color-coral: #f43f5e;
   --color-amber: #f59e0b;
@@ -26,7 +26,7 @@
   --color-rail-icon-active: #ffffff;
 
   --color-answer-1: #2563eb;
-  --color-answer-2: #f97316;
+  --color-answer-2: #c2410c;
   --color-answer-3: #db2777;
   --color-answer-4: #16a34a;
 
@@ -155,4 +155,22 @@ select {
 }
 .shape-square {
   border-radius: 5px;
+}
+
+/* Loading coin: flips around its vertical axis. */
+@keyframes coin-spin {
+  from {
+    transform: perspective(600px) rotateY(0deg);
+  }
+  to {
+    transform: perspective(600px) rotateY(360deg);
+  }
+}
+.coin-spin {
+  animation: coin-spin 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .coin-spin {
+    animation: none;
+  }
 }

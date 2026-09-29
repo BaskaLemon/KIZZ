@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GraduationCap, Plus, X } from 'lucide-react';
 import { View } from '@/components/Shell';
-import { Button, Card, EmptyState, Field, TextInput } from '@/components/ui';
+import { Button, Card, EmptyState, Field, SkeletonList, TextInput } from '@/components/ui';
 import { CopyCodeButton } from '@/components/CopyCodeButton';
 import { ColorPicker } from '@/components/ColorPicker';
 import { api } from '@/lib/api';
@@ -17,11 +17,7 @@ import type { ApiError, Class, User } from '@/lib/types';
 
 function ClassCard({ user, c }: { user: User; c: Class }) {
   const subtitle =
-    user.role === 'student'
-      ? `Багш: ${c.teacherName}`
-      : c.teacherId === user.id
-        ? 'Таны анги'
-        : `Хамтран багш: ${c.teacherName}`;
+    c.teacherId === user.id ? 'Таны бүлэг' : `Үүсгэсэн: ${c.teacherName}`;
 
   return (
     <Link
@@ -57,10 +53,6 @@ export default function ClassList({ user }: { user: User }) {
   const [formOpen, setFormOpen] = useState(false);
   const [mode, setMode] = useState<'create' | 'join'>('create');
   const [className, setClassName] = useState('');
-  const [section, setSection] = useState('');
-  const [level, setLevel] = useState('');
-  const [subject, setSubject] = useState('');
-  const [room, setRoom] = useState('');
   const [classCode, setClassCode] = useState('');
   const [color, setColor] = useState<ClassColorKey>(randomClassColor);
 
@@ -69,15 +61,15 @@ export default function ClassList({ user }: { user: User }) {
       .myClasses()
       .then(setClasses)
       .catch((err: ApiError) => {
-        toast(err.payload?.error || 'Ангиудыг ачаалж чадсангүй', 'error');
+        toast(err.payload?.error || 'Бүлгүүдийг ачаалж чадсангүй', 'error');
         setClasses([]);
       });
-  }, []);
+  }, [toast]);
 
-  // Grouping into folders is a teacher-side organizational tool — students
-  // just see their classes as a flat list.
+  // Folders are the owner's organizational tool; classes joined from others
+  // come without a folder and land in the ungrouped list.
   const grouped = useMemo(() => {
-    if (!classes || user.role !== 'teacher') return null;
+    if (!classes || !classes.some((c) => c.groupId)) return null;
     const byGroup = new Map<string, { name: string; classes: Class[] }>();
     const ungrouped: Class[] = [];
     for (const c of classes) {
@@ -96,20 +88,16 @@ export default function ClassList({ user }: { user: User }) {
       folders: [...byGroup.entries()].map(([id, v]) => ({ id, ...v })),
       ungrouped,
     };
-  }, [classes, user.role]);
+  }, [classes]);
 
   async function createClass() {
-    if (!className.trim()) return toast('Ангийн нэрээ оруулна уу', 'error');
+    if (!className.trim()) return toast('Бүлгийн нэрээ оруулна уу', 'error');
     try {
       const klass = await api.createClass({
         name: className.trim(),
         color,
-        section: section.trim() || undefined,
-        level: level.trim() || undefined,
-        subject: subject.trim() || undefined,
-        room: room.trim() || undefined,
       });
-      toast(`Анги үүслээ — код: ${klass.code}`);
+      toast(`Бүлэг үүслээ — код: ${klass.code}`);
       router.push(`/classroom?classId=${klass.id}`);
     } catch (err) {
       toast((err as ApiError).payload?.error || 'Алдаа гарлаа', 'error');
@@ -117,14 +105,10 @@ export default function ClassList({ user }: { user: User }) {
   }
 
   async function joinClass() {
-    if (!classCode.trim()) return toast('Ангийн кодоо оруулна уу', 'error');
+    if (!classCode.trim()) return toast('Бүлгийн кодоо оруулна уу', 'error');
     try {
       const klass = await api.joinClass(classCode.trim());
-      toast(
-        user.role === 'teacher'
-          ? `"${klass.name}" ангид хамтран багшаар нэгдлээ`
-          : `"${klass.name}" ангид нэгдлээ`,
-      );
+      toast(`"${klass.name}" бүлэгт нэгдлээ`);
       router.push(`/classroom?classId=${klass.id}`);
     } catch (err) {
       toast((err as ApiError).payload?.error || 'Код буруу байна', 'error');
@@ -135,9 +119,9 @@ export default function ClassList({ user }: { user: User }) {
     <View>
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h2 className="mb-0.5 text-2xl">Ангийн танхим</h2>
+          <h2 className="mb-0.5 text-2xl">Бүлгүүд</h2>
           <p className="text-ink-soft">
-            {user.name} — {user.role === 'teacher' ? 'Багш' : 'Сурагч'}
+            Найз, баг, гэр бүл эсвэл ангийнхаа хүмүүстэй хамт суралцаарай.
           </p>
         </div>
         <Button
@@ -150,7 +134,7 @@ export default function ClassList({ user }: { user: User }) {
             </>
           ) : (
             <>
-              <Plus size={16} /> {user.role === 'teacher' ? 'Анги' : 'Нэгдэх'}
+              <Plus size={16} /> Бүлэг
             </>
           )}
         </Button>
@@ -158,7 +142,7 @@ export default function ClassList({ user }: { user: User }) {
 
       {formOpen && (
         <Card className="mb-5 flex flex-col gap-3 rounded-lg">
-          {user.role === 'teacher' && (
+          {(
             <div className="mb-1 flex gap-2">
               <button
                 type="button"
@@ -187,41 +171,18 @@ export default function ClassList({ user }: { user: User }) {
             </div>
           )}
 
-          {user.role === 'teacher' && mode === 'create' && (
+          {mode === 'create' && (
             <>
-              <h3 className="text-[17px]">Шинэ анги үүсгэх</h3>
-              <Field label="Ангийн нэр*" className="mb-0">
+              <h3 className="text-[17px]">Шинэ бүлэг үүсгэх</h3>
+              <Field label="Бүлгийн нэр*" className="mb-0">
                 <TextInput
                   autoFocus
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && createClass()}
-                  placeholder="ж: 10А анги — Биологи"
+                  placeholder="ж: Англи хэлний бүлэг"
                 />
               </Field>
-              <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-                <Field label="Бүлэг (Section)" className="mb-0">
-                  <TextInput
-                    value={section}
-                    onChange={(e) => setSection(e.target.value)}
-                  />
-                </Field>
-                <Field label="Түвшин (Level)" className="mb-0">
-                  <TextInput
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value)}
-                  />
-                </Field>
-                <Field label="Хичээл (Subject)" className="mb-0">
-                  <TextInput
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                  />
-                </Field>
-                <Field label="Өрөө (Room)" className="mb-0">
-                  <TextInput value={room} onChange={(e) => setRoom(e.target.value)} />
-                </Field>
-              </div>
               <div>
                 <p className="mb-1.5 text-[13px] font-semibold text-ink-soft">
                   Өнгө сонгох
@@ -234,16 +195,9 @@ export default function ClassList({ user }: { user: User }) {
             </>
           )}
 
-          {(user.role === 'student' || mode === 'join') && (
+          {mode === 'join' && (
             <>
-              <h3 className="text-[17px]">
-                {user.role === 'teacher' ? 'Кодоор ангид нэгдэх' : 'Ангид нэгдэх'}
-              </h3>
-              {user.role === 'teacher' && (
-                <p className="text-[13px] text-ink-soft">
-                  Өөр багшийн ангид хамтран багшаар нэгдэнэ.
-                </p>
-              )}
+              <h3 className="text-[17px]">Кодоор бүлэгт нэгдэх</h3>
               <div className="flex flex-wrap gap-3">
                 <TextInput
                   className="flex-1"
@@ -262,14 +216,15 @@ export default function ClassList({ user }: { user: User }) {
         </Card>
       )}
 
-      {classes === null ? null : classes.length === 0 ? (
+      {classes === null ? (
+        <SkeletonList />
+      ) : classes.length === 0 ? (
         <>
-          <h3 className="mb-2.5 text-lg">Миний ангиуд</h3>
-          <EmptyState title="Анги алга">
+          <h3 className="mb-2.5 text-lg">Миний бүлгүүд</h3>
+          <EmptyState title="Бүлэг алга">
             <p>
-              {user.role === 'teacher'
-                ? 'Дээрх товчоор шинэ анги үүсгэх эсвэл кодоор нэгдээрэй.'
-                : 'Дээрх товчоор багшийн өгсөн кодоор нэгдээрэй.'}
+              Дээрх товчоор шинэ бүлэг үүсгэх эсвэл найзынхаа өгсөн кодоор
+              нэгдээрэй.
             </p>
           </EmptyState>
         </>
@@ -288,7 +243,7 @@ export default function ClassList({ user }: { user: User }) {
           {grouped.ungrouped.length > 0 && (
             <div>
               <h3 className="mb-2.5 text-lg">
-                {grouped.folders.length > 0 ? 'Бусад анги' : 'Миний ангиуд'}
+                {grouped.folders.length > 0 ? 'Бусад бүлэг' : 'Миний бүлгүүд'}
               </h3>
               <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
                 {grouped.ungrouped.map((c) => (
@@ -300,7 +255,7 @@ export default function ClassList({ user }: { user: User }) {
         </div>
       ) : (
         <>
-          <h3 className="mb-2.5 text-lg">Миний ангиуд</h3>
+          <h3 className="mb-2.5 text-lg">Миний бүлгүүд</h3>
           <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
             {classes.map((c) => (
               <ClassCard key={c.id} user={user} c={c} />

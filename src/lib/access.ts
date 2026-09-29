@@ -76,12 +76,17 @@ export async function getClassMembership(
   return { klass, isTeacher: false, isMember: !!membership };
 }
 
-/** A note or quiz belongs to exactly one of a study group or a class — this
- * checks whichever it has. Neither set (shouldn't happen) is denied. */
+/** A note or quiz is personal (owned by one user), or belongs to a study
+ * group or a class — this checks whichever applies. None set is denied. */
 async function canAccessGroupOrClassScoped(
-  row: { groupId: string | null; classId: string | null },
+  row: {
+    groupId: string | null;
+    classId: string | null;
+    ownerId: string | null;
+  },
   userId: string,
 ): Promise<boolean> {
+  if (row.ownerId) return row.ownerId === userId;
   if (row.classId) {
     const { isMember } = await getClassMembership(row.classId, userId);
     return isMember;

@@ -4,6 +4,7 @@ import { getDb } from '@/db/client';
 import { classMaterials } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ materialId: string }> };
 
@@ -19,6 +20,9 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { materialId } = await params;
+  if (!isUuid(materialId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const [material] = await getDb()
     .select()
@@ -51,6 +55,9 @@ export async function DELETE(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { materialId } = await params;
+  if (!isUuid(materialId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const [material] = await getDb()
     .select({ id: classMaterials.id, classId: classMaterials.classId })
@@ -67,7 +74,7 @@ export async function DELETE(request: Request, { params }: Params) {
   );
   if (!isTeacher) {
     return NextResponse.json(
-      { error: 'Зөвхөн ангийн багш файл устгах боломжтой.' },
+      { error: 'Зөвхөн бүлгийн админ файл устгах боломжтой.' },
       { status: 403 },
     );
   }

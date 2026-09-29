@@ -81,7 +81,7 @@ export function EditClassDialog({
 
   async function save() {
     if (!draft.name.trim()) {
-      toast('Ангийн нэрээ оруулна уу', 'error');
+      toast('Бүлгийн нэрээ оруулна уу', 'error');
       return;
     }
     setSaving(true);
@@ -108,7 +108,7 @@ export function EditClassDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-ink bg-paper-raised p-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-ink">Ангийг тохируулах</h2>
+          <h2 className="text-xl font-bold text-ink">Бүлгийг тохируулах</h2>
           <button
             type="button"
             onClick={onClose}
@@ -120,32 +120,32 @@ export function EditClassDialog({
         </div>
 
         <div className="mt-5 flex flex-col gap-1">
-          <Field label="Ангийн нэр*">
+          <Field label="Бүлгийн нэр*">
             <TextInput
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              placeholder="ж: 10А анги — Биологи"
+              placeholder="ж: Англи хэлний бүлэг"
             />
           </Field>
-          <Field label="Бүлэг (Section)">
+          <Field label="Дэд бүлэг">
             <TextInput
               value={draft.section}
               onChange={(e) => setDraft({ ...draft, section: e.target.value })}
             />
           </Field>
-          <Field label="Түвшин (Level)">
+          <Field label="Түвшин">
             <TextInput
               value={draft.level}
               onChange={(e) => setDraft({ ...draft, level: e.target.value })}
             />
           </Field>
-          <Field label="Хичээл (Subject)">
+          <Field label="Сэдэв">
             <TextInput
               value={draft.subject}
               onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
             />
           </Field>
-          <Field label="Өрөө (Room)">
+          <Field label="Байршил">
             <TextInput
               value={draft.room}
               onChange={(e) => setDraft({ ...draft, room: e.target.value })}
@@ -153,7 +153,7 @@ export function EditClassDialog({
           </Field>
         </div>
 
-        <Field label="Хавтас (ангиудаа бүлэглэх)">
+        <Field label="Хавтас (бүлгүүдээ ангилах)">
           <div className="flex flex-wrap gap-2">
             <select
               className="flex-1 rounded-sm border-2 border-line p-2.5"

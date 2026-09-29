@@ -7,6 +7,7 @@ import { canAccessNote } from '@/lib/access';
 import { toQuiz } from '@/lib/mappers';
 import { generateAiQuestions, isAiConfigured } from '@/lib/quiz/generateAi';
 import { generateRuleBasedQuestions } from '@/lib/quiz/generateRuleBased';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ noteId: string }> };
 
@@ -14,6 +15,9 @@ export async function POST(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { noteId } = await params;
+  if (!isUuid(noteId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const [note] = await getDb()
     .select()
@@ -68,6 +72,7 @@ export async function POST(request: Request, { params }: Params) {
     .values({
       groupId: note.groupId,
       classId: note.classId,
+      ownerId: note.ownerId,
       sourceNoteId: note.id,
       title: note.title,
       questions,

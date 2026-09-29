@@ -1,6 +1,6 @@
 import { getDb } from '@/db/client';
 import { noteAttachments } from '@/db/schema';
-import { MAX_FILE_BYTES } from '@/lib/materials';
+import { MAX_FILE_BYTES, normalizeMime } from '@/lib/materials';
 
 export const ALLOWED_NOTE_ATTACHMENT_TYPES = new Set([
   'application/pdf',
@@ -39,7 +39,7 @@ export function validateNoteAttachment(
       status: 413,
     };
   }
-  if (!ALLOWED_NOTE_ATTACHMENT_TYPES.has(file.type)) {
+  if (!ALLOWED_NOTE_ATTACHMENT_TYPES.has(normalizeMime(file.type))) {
     return { error: 'Зөвхөн PDF болон зураг дэмжинэ.', status: 415 };
   }
   return null;
@@ -58,7 +58,7 @@ export async function insertNoteAttachment(params: {
       noteId,
       uploadedBy,
       fileName: file.name.slice(0, 255) || 'file',
-      mimeType: file.type,
+      mimeType: normalizeMime(file.type),
       sizeBytes: file.size,
       data: buffer.toString('base64'),
     })

@@ -100,7 +100,7 @@ async function downloadFile(path: string): Promise<{ blob: Blob; fileName: strin
 
 export const api = {
   // auth
-  signup: (payload: { name: string; email: string; password: string; role: string }) =>
+  signup: (payload: { name: string; email: string; password: string }) =>
     request<{ token: string; user: User }>('POST', '/auth/signup', payload),
   login: (payload: { email: string; password: string }) =>
     request<{ token: string; user: User }>('POST', '/auth/login', payload),
@@ -121,6 +121,10 @@ export const api = {
     request<Note[]>('GET', `/classes/${classId}/notes`),
   createClassNote: (classId: string, title: string) =>
     request<Note>('POST', `/classes/${classId}/notes`, { title }),
+  listMyNotes: () => request<Note[]>('GET', '/me/notes'),
+  createMyNote: (title: string) => request<Note>('POST', '/me/notes', { title }),
+  listMyQuizzes: () => request<Quiz[]>('GET', '/me/quizzes'),
+  deleteNote: (noteId: string) => request('DELETE', `/notes/${noteId}`),
   getNote: (noteId: string) => request<Note>('GET', `/notes/${noteId}`),
   updateNote: (noteId: string, patch: { title?: string; content?: string; baseUpdatedAt?: string }) =>
     request<Note>('PATCH', `/notes/${noteId}`, patch),
@@ -131,6 +135,7 @@ export const api = {
   listQuizzes: (groupId: string) => request<Quiz[]>('GET', `/groups/${groupId}/quizzes`),
   listClassQuizzes: (classId: string) =>
     request<Quiz[]>('GET', `/classes/${classId}/quizzes`),
+  deleteQuiz: (quizId: string) => request('DELETE', `/quizzes/${quizId}`),
   getQuiz: (quizId: string) => request<Quiz>('GET', `/quizzes/${quizId}`),
 
   // live game — polling-based (no WebSocket/pub-sub service is configured
@@ -198,6 +203,11 @@ export const api = {
     downloadFile(`/note-attachments/${attachmentId}`),
   deleteNoteAttachment: (attachmentId: string) =>
     request('DELETE', `/note-attachments/${attachmentId}`),
+  deleteAssignment: (assignmentId: string) =>
+    request('DELETE', `/assignments/${assignmentId}`),
+  deleteClass: (classId: string) => request('DELETE', `/classes/${classId}`),
+  leaveClass: (classId: string) =>
+    request('DELETE', `/classes/${classId}/membership`),
   listAssignments: (classId: string) =>
     request<Assignment[]>('GET', `/classes/${classId}/assignments`),
   createAssignment: (

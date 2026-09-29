@@ -4,6 +4,7 @@ import { getDb } from '@/db/client';
 import { gameSessions } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { loadGameState } from '@/lib/game';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -11,6 +12,9 @@ export async function POST(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { id } = await params;
+  if (!isUuid(id)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const [session] = await getDb()
     .select()
@@ -22,7 +26,7 @@ export async function POST(request: Request, { params }: Params) {
   }
   if (session.createdBy !== auth.user.id) {
     return NextResponse.json(
-      { error: 'Зөвхөн тоглоом эхлүүлсэн багш эхлүүлэх боломжтой.' },
+      { error: 'Зөвхөн тоглоомыг эхлүүлсэн хүн эхлүүлэх боломжтой.' },
       { status: 403 },
     );
   }

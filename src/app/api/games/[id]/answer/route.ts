@@ -5,6 +5,7 @@ import { gameAnswers, gamePlayers, gameSessions, quizzes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { ANSWER_WINDOW_MS, loadGameState } from '@/lib/game';
 import { pgErrorCode, UNIQUE_VIOLATION } from '@/lib/dbErrors';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -12,6 +13,9 @@ export async function POST(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { id } = await params;
+  if (!isUuid(id)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const body = await request.json().catch(() => null);
   const optionIndex = typeof body?.optionIndex === 'number' ? body.optionIndex : -1;

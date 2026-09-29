@@ -76,7 +76,7 @@ export function Gradebook({ assignmentId }: { assignmentId: string }) {
           'error',
         );
       });
-  }, [assignmentId]);
+  }, [assignmentId, toast]);
 
   if (submissions === null) return null;
 
@@ -103,7 +103,7 @@ export function Gradebook({ assignmentId }: { assignmentId: string }) {
   return (
     <>
       <p className="mt-3.5 text-[13px] font-semibold text-ink-soft">
-        {submissions.length} сурагч илгээсэн
+        {submissions.length} гишүүн илгээсэн
         {average !== null && ` · Дундаж оноо: ${average}%`}
         {graded.length < submissions.length &&
           ` · ${submissions.length - graded.length} дүн ороогүй`}
@@ -112,7 +112,7 @@ export function Gradebook({ assignmentId }: { assignmentId: string }) {
         <thead>
           <tr>
             <th className="border-b-2 border-line px-3 py-2.5 text-left text-[13px] text-ink-soft">
-              Сурагч
+              Гишүүн
             </th>
             <th className="border-b-2 border-line px-3 py-2.5 text-left text-[13px] text-ink-soft">
               Дүн

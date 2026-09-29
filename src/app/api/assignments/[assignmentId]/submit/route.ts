@@ -4,7 +4,9 @@ import { getDb } from '@/db/client';
 import { assignments, quizzes, submissions } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
+import { UNIQUE_VIOLATION, pgErrorCode } from '@/lib/dbErrors';
 import type { SubmitResult } from '@/lib/types';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ assignmentId: string }> };
 
@@ -12,12 +14,8 @@ export async function POST(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { assignmentId } = await params;
-
-  if (auth.user.role !== 'student') {
-    return NextResponse.json(
-      { error: 'Зөвхөн сурагч даалгавар илгээх боломжтой.' },
-      { status: 403 },
-    );
+  if (!isUuid(assignmentId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
   }
 
   const db = getDb();
@@ -33,7 +31,7 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  const { isMember } = await getClassMembership(
+  const { isMember, isTeacher } = await getClassMembership(
     assignment.classId,
     auth.user.id,
   );
@@ -41,6 +39,13 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json(
       { error: 'Даалгавар олдсонгүй.' },
       { status: 404 },
+    );
+  }
+
+  if (isTeacher) {
+    return NextResponse.json(
+      { error: 'Бүлгийн админ даалгавар илгээх боломжгүй.' },
+      { status: 403 },
     );
   }
 
@@ -83,8 +88,7 @@ export async function POST(request: Request, { params }: Params) {
       score,
     });
   } catch (err) {
-    const code = (err as { code?: string } | null)?.code;
-    if (code === '23505') {
+    if (pgErrorCode(err) === UNIQUE_VIOLATION) {
       return NextResponse.json(
         { error: 'Та энэ даалгаврыг өмнө нь илгээсэн байна.' },
         { status: 409 },

@@ -63,7 +63,7 @@ export function useAppState<K extends keyof AppStateShape>(
  * key that's simply not set, so callers need this instead of an
  * undefined-check to distinguish "still loading" from "no value".
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-function -- useSyncExternalStore requires a subscribe fn; this store never changes after hydration, so there's nothing to unsubscribe.
+// useSyncExternalStore requires a subscribe fn; this store never changes after hydration, so there's nothing to unsubscribe.
 const noopSubscribe = () => () => {};
 
 export function useHydrated(): boolean {

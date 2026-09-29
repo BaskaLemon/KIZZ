@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, FileText } from 'lucide-react';
-import { Button, Card, EmptyState, TextInput } from '@/components/ui';
+import { ArrowLeft, FileText, Trash2 } from 'lucide-react';
+import { Button, Card, EmptyState, SkeletonList, TextInput } from '@/components/ui';
 import { NoteEditor, type SaveStatus } from '@/components/NoteEditor';
 import { QuizGenButton } from '@/components/QuizGenButton';
 import { NoteAttachments } from '@/components/NoteAttachments';
@@ -22,11 +22,13 @@ function relativeTime(iso: string): string {
   return `${Math.round(hours / 24)} өдрийн өмнө`;
 }
 
+/** Notes workspace. With a `classId` it shows that class's shared notes;
+ * without one it shows the user's personal (private) notes. */
 export function ClassNotes({
   classId,
   currentUser,
 }: {
-  classId: string;
+  classId?: string;
   currentUser: User;
 }) {
   const toast = useToast();
@@ -45,17 +47,18 @@ export function ClassNotes({
   const baseUpdatedAt = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    api
-      .listClassNotes(classId)
+    (classId ? api.listClassNotes(classId) : api.listMyNotes())
       .then(setNotes)
       .catch((err: ApiError) => {
         toast(err.payload?.error || 'Тэмдэглэлүүдийг ачаалж чадсангүй', 'error');
         setNotes([]);
       });
-    api
-      .getPeople(classId)
-      .then(setPeople)
-      .catch(() => setPeople(null));
+    if (classId) {
+      api
+        .getPeople(classId)
+        .then(setPeople)
+        .catch(() => setPeople(null));
+    }
   }, [classId, toast]);
 
   useEffect(() => {
@@ -134,6 +137,20 @@ export function ClassNotes({
     if (activeNoteId) scheduleSave(activeNoteId, title, next);
   }
 
+  async function deleteActiveNote() {
+    if (!activeNoteId) return;
+    if (!window.confirm(`"${title || 'Тэмдэглэл'}" тэмдэглэлийг устгах уу? Үүнийг буцаах боломжгүй.`)) return;
+    try {
+      await api.deleteNote(activeNoteId);
+      const removed = activeNoteId;
+      goBack();
+      setNotes((prev) => (prev ? prev.filter((n) => n.id !== removed) : prev));
+      toast('Тэмдэглэл устгагдлаа');
+    } catch (err) {
+      toast((err as ApiError).payload?.error || 'Устгахад алдаа гарлаа', 'error');
+    }
+  }
+
   function goBack() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setActiveNoteId(null);
@@ -147,7 +164,9 @@ export function ClassNotes({
     }
     setCreating(true);
     try {
-      const note = await api.createClassNote(classId, newTitle.trim());
+      const note = classId
+        ? await api.createClassNote(classId, newTitle.trim())
+        : await api.createMyNote(newTitle.trim());
       setNewTitle('');
       setNotes((prev) => (prev ? [note, ...prev] : [note]));
       setActiveNoteId(note.id);
@@ -193,14 +212,16 @@ export function ClassNotes({
           />
 
           <div className="flex flex-col gap-5">
-            <Card className="rounded-lg">
-              <p className="text-sm font-medium text-ink-soft">
-                Ангийн гишүүд
-              </p>
-              <div className="mt-3">
-                <UserAvatarList collaborators={collaborators} showNames />
-              </div>
-            </Card>
+            {classId && (
+              <Card className="rounded-lg">
+                <p className="text-sm font-medium text-ink-soft">
+                  Бүлгийн гишүүд
+                </p>
+                <div className="mt-3">
+                  <UserAvatarList collaborators={collaborators} showNames />
+                </div>
+              </Card>
+            )}
 
             <Card className="rounded-lg">
               <p className="text-sm font-medium text-ink-soft">
@@ -224,6 +245,14 @@ export function ClassNotes({
                 <NoteAttachments noteId={activeNote.id} />
               </div>
             </Card>
+
+            <button
+              type="button"
+              onClick={deleteActiveNote}
+              className="inline-flex w-fit items-center gap-1.5 rounded-full border-2 border-coral/40 px-4 py-2 text-[13px] font-semibold text-coral transition-colors hover:bg-coral/10"
+            >
+              <Trash2 size={14} /> Тэмдэглэл устгах
+            </button>
           </div>
         </div>
       </div>
@@ -249,9 +278,15 @@ export function ClassNotes({
       </Card>
 
       <h3 className="mb-2.5 text-lg">Тэмдэглэлүүд</h3>
-      {notes === null ? null : notes.length === 0 ? (
+      {notes === null ? (
+        <SkeletonList />
+      ) : notes.length === 0 ? (
         <EmptyState title="Тэмдэглэл алга">
-          <p>Дээрх товчоор ангийн анхны хамтын тэмдэглэлээ үүсгээрэй.</p>
+          <p>
+            {classId
+              ? 'Дээрх товчоор бүлгийн анхны хамтын тэмдэглэлээ үүсгээрэй.'
+              : 'Дээрх товчоор анхны тэмдэглэлээ үүсгээрэй. Зөвхөн та харна.'}
+          </p>
         </EmptyState>
       ) : (
         <div className="flex flex-col gap-3">

@@ -2,15 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClipboardList, Gamepad2 } from 'lucide-react';
-import { Button, Card, EmptyState } from '@/components/ui';
+import { ClipboardList, Gamepad2, Trash2 } from 'lucide-react';
+import { Button, Card, EmptyState, SkeletonList } from '@/components/ui';
 import { QuizGenButton } from '@/components/QuizGenButton';
 import { QuizPlayer } from '@/components/QuizPlayer';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import type { ApiError, Note, Quiz } from '@/lib/types';
 
-export function ClassQuiz({ classId }: { classId: string }) {
+export function ClassQuiz({
+  classId,
+  isTeacher,
+}: {
+  classId: string;
+  isTeacher: boolean;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
@@ -50,6 +56,17 @@ export function ClassQuiz({ classId }: { classId: string }) {
     }
   }
 
+  async function deleteQuiz(quiz: Quiz) {
+    if (!window.confirm(`"${quiz.title}" quiz-ийг устгах уу? Үүнийг буцаах боломжгүй.`)) return;
+    try {
+      await api.deleteQuiz(quiz.id);
+      setQuizzes((prev) => (prev ? prev.filter((q) => q.id !== quiz.id) : prev));
+      toast('Quiz устгагдлаа');
+    } catch (err) {
+      toast((err as ApiError).payload?.error || 'Устгахад алдаа гарлаа', 'error');
+    }
+  }
+
   if (activeQuiz) {
     return <QuizPlayer quiz={activeQuiz} onBack={() => setActiveQuiz(null)} />;
   }
@@ -58,7 +75,9 @@ export function ClassQuiz({ classId }: { classId: string }) {
     <div className="flex flex-col gap-6">
       <div>
         <h3 className="mb-2.5 text-lg">Quiz-үүд</h3>
-        {quizzes === null ? null : quizzes.length === 0 ? (
+        {quizzes === null ? (
+          <SkeletonList rows={2} />
+        ) : quizzes.length === 0 ? (
           <EmptyState title="Quiz алга">
             <p>Доорх тэмдэглэл дээрх товчоор эхний quiz-ээ үүсгээрэй.</p>
           </EmptyState>
@@ -94,6 +113,17 @@ export function ClassQuiz({ classId }: { classId: string }) {
                   <Gamepad2 size={15} />
                   {starting === quiz.id ? 'Үүсгэж байна...' : 'Тоглоом'}
                 </Button>
+                {isTeacher && (
+                  <button
+                    type="button"
+                    onClick={() => deleteQuiz(quiz)}
+                    aria-label={`${quiz.title} устгах`}
+                    title="Устгах"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-coral/10 hover:text-coral"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -102,7 +132,9 @@ export function ClassQuiz({ classId }: { classId: string }) {
 
       <div>
         <h3 className="mb-2.5 text-lg">Тэмдэглэлээс quiz үүсгэх</h3>
-        {notes === null ? null : notes.length === 0 ? (
+        {notes === null ? (
+          <SkeletonList rows={2} />
+        ) : notes.length === 0 ? (
           <EmptyState title="Тэмдэглэл алга">
             <p>Эхлээд &quot;Тэмдэглэл&quot; таб дээр тэмдэглэл үүсгээрэй.</p>
           </EmptyState>

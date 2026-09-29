@@ -41,10 +41,10 @@ export function ClassStream({
               <p className="mt-1.5 flex items-center gap-1.5 text-white/85">
                 {isTeacher ? (
                   <>
-                    <Users size={15} /> {klass.memberCount ?? 0} сурагч
+                    <Users size={15} /> {klass.memberCount ?? 0} гишүүн
                   </>
                 ) : (
-                  `Багш: ${klass.teacherName}`
+                  `Үүсгэсэн: ${klass.teacherName}`
                 )}
               </p>
             </div>
@@ -64,7 +64,7 @@ export function ClassStream({
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Card className="rounded-lg">
           <p className="text-[13px] font-semibold text-ink-soft">
-            Ангийн код
+            Бүлгийн код
           </p>
           <div className="mt-2 flex items-center justify-between">
             <p className="text-xl font-bold tracking-wide text-ink">

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
 'use client';
 
 import {

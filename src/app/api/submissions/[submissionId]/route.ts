@@ -5,6 +5,7 @@ import { assignments, submissions, users } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
 import { toSubmission } from '@/lib/mappers';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ submissionId: string }> };
 
@@ -15,6 +16,9 @@ export async function PATCH(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { submissionId } = await params;
+  if (!isUuid(submissionId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const db = getDb();
   const [row] = await db
@@ -30,7 +34,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const { isTeacher } = await getClassMembership(row.classId, auth.user.id);
   if (!isTeacher) {
     return NextResponse.json(
-      { error: 'Зөвхөн ангийн багш дүн оруулах боломжтой.' },
+      { error: 'Зөвхөн бүлгийн админ дүн оруулах боломжтой.' },
       { status: 403 },
     );
   }

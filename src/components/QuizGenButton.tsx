@@ -6,7 +6,7 @@ import { Gamepad2, Loader2, Sparkles, X } from 'lucide-react';
 import { api } from '../lib/api';
 import type { ApiError, Quiz } from '../lib/types';
 
-const COUNT_OPTIONS = [3, 5, 10];
+const COUNT_OPTIONS = [3, 5, 10, 20];
 
 type Mode = 'rule-based' | 'ai';
 
@@ -183,6 +183,12 @@ export function QuizGenButton({
                 <p className="mt-4 text-sm font-semibold text-green-600">
                   {quiz.questions.length} асуулт бэлэн боллоо
                 </p>
+                {quiz.questions.length < count && (
+                  <p className="mt-1 text-xs text-ink-soft">
+                    Тэмдэглэлийн агуулга хангалттай биш тул {count} биш{' '}
+                    {quiz.questions.length} асуулт үүслээ. Тэмдэглэлээ урт болговол илүү олон асуулт гарна.
+                  </p>
+                )}
                 {error && (
                   <p className="mt-3 rounded-lg bg-coral/10 px-3 py-2 text-sm font-medium text-coral">
                     {error}

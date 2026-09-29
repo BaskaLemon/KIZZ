@@ -1,6 +1,8 @@
 import type { Question } from '@/lib/types';
 
-const MODEL = 'gemini-2.5-flash';
+// Tried in order: Google retires models for new keys and returns 503 under
+// load, so fall through to the next one on 404/429/5xx.
+const MODELS = ['gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite'];
 const MAX_NOTE_CHARS = 20_000;
 
 export class AiNotConfiguredError extends Error {}
@@ -35,45 +37,54 @@ export async function generateAiQuestions(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new AiNotConfiguredError();
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text:
-                'You write study quizzes. Reply with ONLY a JSON array. ' +
-                'Each item: {"prompt": string, "options": [4 distinct strings], "correctIndex": 0-3, "explanation": string}. ' +
-                "Write in the same language as the note. Questions must be answerable from the note's content alone.",
-            },
-          ],
+  const requestBody = JSON.stringify({
+    systemInstruction: {
+      parts: [
+        {
+          text:
+            'You write study quizzes. Reply with ONLY a JSON array. ' +
+            'Each item: {"prompt": string, "options": [4 distinct strings], "correctIndex": 0-3, "explanation": string}. ' +
+            "Write in the same language as the note. Questions must be answerable from the note's content alone.",
         },
-        contents: [
+      ],
+    },
+    contents: [
+      {
+        role: 'user',
+        parts: [
           {
-            role: 'user',
-            parts: [
-              {
-                text: `Create ${count} multiple-choice questions from this note:\n\n${content.slice(0, MAX_NOTE_CHARS)}`,
-              },
-            ],
+            text: `Create ${count} multiple-choice questions from this note:\n\n${content.slice(0, MAX_NOTE_CHARS)}`,
           },
         ],
-        generationConfig: { responseMimeType: 'application/json' },
-      }),
-    },
-  );
-  if (!res.ok) throw new Error(`Gemini API ${res.status}`);
+      },
+    ],
+    generationConfig: { responseMimeType: 'application/json' },
+  });
+
+  let res: Response | null = null;
+  for (const model of MODELS) {
+    res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+        body: requestBody,
+      },
+    );
+    if (res.ok) break;
+    if (![404, 429, 500, 502, 503, 504].includes(res.status)) break;
+  }
+  if (!res || !res.ok) throw new Error(`Gemini API ${res?.status}`);
 
   const data = (await res.json()) as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
+    candidates?: {
+      content?: { parts?: { text?: string; thought?: boolean }[] };
+    }[];
   };
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const text = (data.candidates?.[0]?.content?.parts ?? [])
+    .filter((p) => !p.thought && typeof p.text === 'string')
+    .map((p) => p.text)
+    .join('');
   const start = text.indexOf('[');
   const end = text.lastIndexOf(']');
   if (start === -1 || end === -1) throw new Error('AI returned no JSON');

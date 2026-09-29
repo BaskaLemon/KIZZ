@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LogOut, Trash2 } from 'lucide-react';
 import { View } from '@/components/Shell';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Tabs } from '@/components/Tabs';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
@@ -50,7 +51,7 @@ export default function ClassDetail({
   const [editOpen, setEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? 'stream');
 
-  const isTeacher = user.role === 'teacher';
+  const isTeacher = klass?.canManage ?? false;
 
   async function reloadAssignments() {
     setAssignments(await api.listAssignments(classId));
@@ -66,7 +67,7 @@ export default function ClassDetail({
       })
       .catch((err: ApiError) => {
         if (cancelled) return;
-        toast(err.payload?.error || 'Анги олдсонгүй', 'error');
+        toast(err.payload?.error || 'Бүлэг олдсонгүй', 'error');
         router.push('/classroom');
       });
     return () => {
@@ -74,7 +75,33 @@ export default function ClassDetail({
     };
   }, [classId, router, toast]);
 
-  if (!klass || !assignments) return null;
+  const isOwner = klass?.teacherId === user.id;
+
+  async function deleteGroup() {
+    if (!klass) return;
+    if (!window.confirm(`"${klass.name}" бүлгийг устгах уу? Бүх тэмдэглэл, quiz, даалгавар, дүн устгагдана. Үүнийг буцаах боломжгүй.`)) return;
+    try {
+      await api.deleteClass(classId);
+      toast('Бүлэг устгагдлаа');
+      router.push('/classroom');
+    } catch (err) {
+      toast((err as ApiError).payload?.error || 'Устгахад алдаа гарлаа', 'error');
+    }
+  }
+
+  async function leaveGroup() {
+    if (!klass) return;
+    if (!window.confirm(`"${klass.name}" бүлгээс гарах уу?`)) return;
+    try {
+      await api.leaveClass(classId);
+      toast('Бүлгээс гарлаа');
+      router.push('/classroom');
+    } catch (err) {
+      toast((err as ApiError).payload?.error || 'Алдаа гарлаа', 'error');
+    }
+  }
+
+  if (!klass || !assignments) return <LoadingScreen />;
 
   return (
     <View>
@@ -82,7 +109,7 @@ export default function ClassDetail({
         href="/classroom"
         className="mb-4 inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink"
       >
-        <ArrowLeft size={15} /> Бүх анги
+        <ArrowLeft size={15} /> Бүх бүлэг
       </Link>
 
       <Tabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
@@ -110,12 +137,32 @@ export default function ClassDetail({
           <ClassNotes classId={classId} currentUser={user} />
         )}
 
-        {activeTab === 'quiz' && <ClassQuiz classId={classId} />}
+        {activeTab === 'quiz' && <ClassQuiz classId={classId} isTeacher={isTeacher} />}
 
         {activeTab === 'people' && <People classId={classId} />}
 
         {activeTab === 'marks' && (
           <ClassMarks assignments={assignments} isTeacher={isTeacher} />
+        )}
+      </div>
+
+      <div className="mt-10 border-t border-line pt-5">
+        {isOwner ? (
+          <button
+            type="button"
+            onClick={deleteGroup}
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-coral/40 px-4 py-2 text-[13px] font-semibold text-coral transition-colors hover:bg-coral/10"
+          >
+            <Trash2 size={14} /> Бүлгийг устгах
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={leaveGroup}
+            className="inline-flex items-center gap-1.5 rounded-full border-2 border-line px-4 py-2 text-[13px] font-semibold text-ink-soft transition-colors hover:border-coral/40 hover:text-coral"
+          >
+            <LogOut size={14} /> Бүлгээс гарах
+          </button>
         )}
       </div>
 

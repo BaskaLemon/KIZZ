@@ -43,7 +43,9 @@ export interface Quiz {
   id: string;
   groupId: string | null;
   classId: string | null;
-  sourceNoteId: string;
+  sourceNoteId: string | null;
+  /** Set for a personal quiz (only its owner sees it). */
+  ownerId: string | null;
   title: string;
   questions: Question[];
   generatedBy: 'ai' | 'rule-based';
@@ -114,6 +116,9 @@ export interface Class {
   createdAt: string;
   /** Enrolled student count. Only populated by GET /classes/:id. */
   memberCount?: number;
+  /** Whether the caller administers this group (owner/co-admin). Only
+   * populated by GET /classes/:id. */
+  canManage?: boolean;
 }
 
 /** A teacher's own folder for organizing their class list. */

@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
 import { toNote } from '@/lib/mappers';
 import { resolveUserNames } from '@/lib/userNames';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ classId: string }> };
 
@@ -13,10 +14,13 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { classId } = await params;
+  if (!isUuid(classId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const { klass, isMember } = await getClassMembership(classId, auth.user.id);
   if (!klass || !isMember) {
-    return NextResponse.json({ error: 'Анги олдсонгүй.' }, { status: 404 });
+    return NextResponse.json({ error: 'Бүлэг олдсонгүй.' }, { status: 404 });
   }
 
   const rows = await getDb()
@@ -35,10 +39,13 @@ export async function POST(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { classId } = await params;
+  if (!isUuid(classId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const { klass, isMember } = await getClassMembership(classId, auth.user.id);
   if (!klass || !isMember) {
-    return NextResponse.json({ error: 'Анги олдсонгүй.' }, { status: 404 });
+    return NextResponse.json({ error: 'Бүлэг олдсонгүй.' }, { status: 404 });
   }
 
   const body = await request.json().catch(() => null);

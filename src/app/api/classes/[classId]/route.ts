@@ -4,9 +4,11 @@ import { getDb } from '@/db/client';
 import { classGroups, classMembers, classes, users } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
+import { deleteClassCascade } from '@/lib/deletion';
 import { toClass } from '@/lib/mappers';
 import { isClassColorKey } from '@/lib/classColor';
 import { optionalText } from '@/lib/text';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ classId: string }> };
 
@@ -26,13 +28,16 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { classId } = await params;
+  if (!isUuid(classId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const { klass, isMember, isTeacher } = await getClassMembership(
     classId,
     auth.user.id,
   );
   if (!klass || !isMember) {
-    return NextResponse.json({ error: 'Анги олдсонгүй.' }, { status: 404 });
+    return NextResponse.json({ error: 'Бүлэг олдсонгүй.' }, { status: 404 });
   }
 
   const db = getDb();
@@ -53,21 +58,28 @@ export async function GET(request: Request, { params }: Params) {
 
   const groupName = await resolveGroupName(klass.groupId);
 
-  return NextResponse.json(toClass(klass, teacherName, { memberCount, groupName }));
+  return NextResponse.json(toClass(klass, teacherName, {
+      memberCount,
+      groupName,
+      canManage: isTeacher,
+    }));
 }
 
 export async function PATCH(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { classId } = await params;
+  if (!isUuid(classId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const { klass, isTeacher } = await getClassMembership(classId, auth.user.id);
   if (!klass) {
-    return NextResponse.json({ error: 'Анги олдсонгүй.' }, { status: 404 });
+    return NextResponse.json({ error: 'Бүлэг олдсонгүй.' }, { status: 404 });
   }
   if (!isTeacher) {
     return NextResponse.json(
-      { error: 'Зөвхөн ангийн багш засах боломжтой.' },
+      { error: 'Зөвхөн бүлгийн админ засах боломжтой.' },
       { status: 403 },
     );
   }
@@ -145,4 +157,28 @@ export async function PATCH(request: Request, { params }: Params) {
   return NextResponse.json(
     toClass(row, auth.user.name, { memberCount, groupName }),
   );
+}
+
+/** Owner only: deletes the group and everything in it. */
+export async function DELETE(request: Request, { params }: Params) {
+  const auth = await requireUser(request);
+  if (auth.error) return auth.error;
+  const { classId } = await params;
+  if (!isUuid(classId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
+
+  const { klass } = await getClassMembership(classId, auth.user.id);
+  if (!klass) {
+    return NextResponse.json({ error: 'Бүлэг олдсонгүй.' }, { status: 404 });
+  }
+  if (klass.teacherId !== auth.user.id) {
+    return NextResponse.json(
+      { error: 'Зөвхөн бүлгийг үүсгэсэн хүн устгах боломжтой.' },
+      { status: 403 },
+    );
+  }
+
+  await deleteClassCascade(classId);
+  return NextResponse.json({ ok: true });
 }

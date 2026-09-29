@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { classCoTeachers, classMembers, classes, users } from '@/db/schema';
+import { classMembers, classes, users } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
 import { notifyUsers } from '@/lib/notifications';
@@ -31,31 +31,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Код буруу байна.' }, { status: 404 });
   }
 
-  if (auth.user.role === 'teacher') {
-    if (klass.teacherId === auth.user.id) {
-      return NextResponse.json(
-        { error: 'Энэ бол таны өөрийн анги.' },
-        { status: 400 },
-      );
-    }
-    const { isTeacher } = await getClassMembership(klass.id, auth.user.id);
-    if (!isTeacher) {
-      await db
-        .insert(classCoTeachers)
-        .values({ classId: klass.id, teacherId: auth.user.id });
-    }
-  } else {
-    const { isMember } = await getClassMembership(klass.id, auth.user.id);
-    if (!isMember) {
-      await db
-        .insert(classMembers)
-        .values({ classId: klass.id, studentId: auth.user.id });
-      await notifyUsers([klass.teacherId], {
-        title: `${auth.user.name} ангид нэгдлээ`,
-        body: klass.name,
-        href: `/classroom?classId=${klass.id}`,
-      });
-    }
+  if (klass.teacherId === auth.user.id) {
+    return NextResponse.json(
+      { error: 'Энэ бол таны өөрийн бүлэг.' },
+      { status: 400 },
+    );
+  }
+  const { isMember } = await getClassMembership(klass.id, auth.user.id);
+  if (!isMember) {
+    await db
+      .insert(classMembers)
+      .values({ classId: klass.id, studentId: auth.user.id });
+    await notifyUsers([klass.teacherId], {
+      title: `${auth.user.name} бүлэгт нэгдлээ`,
+      body: klass.name,
+      href: `/classroom?classId=${klass.id}`,
+    });
   }
 
   const [teacher] = await db

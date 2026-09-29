@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { Home, FileText, Bot, GraduationCap, Store } from 'lucide-react';
+import { Home, FileText, Gamepad2, Users, Store } from 'lucide-react';
 import { useAvatar } from '@/hooks/useAvatar';
 import { cx } from '@/lib/cx';
 import { ThemeToggle } from './ThemeToggle';
@@ -11,8 +11,8 @@ import { NotificationBell } from './NotificationBell';
 const NAV = [
   { path: '/', icon: Home, label: 'Нүүр', href: '/' },
   { path: '/notes', icon: FileText, label: 'Тэмдэглэл', href: '/notes' },
-  { path: '/play', icon: Bot, label: 'Тоглоом', href: '/play' },
-  { path: '/classroom', icon: GraduationCap, label: 'Ангийн танхим', href: '/classroom' },
+  { path: '/play', icon: Gamepad2, label: 'Тоглоом', href: '/play' },
+  { path: '/classroom', icon: Users, label: 'Бүлгүүд', href: '/classroom' },
   { path: '/shop', icon: Store, label: 'Дэлгүүр', href: '/shop' },
 ];
 
@@ -31,29 +31,63 @@ export function Shell({
         <Link
           href="/profile"
           title="Профайл"
+          aria-label="Профайл"
           className="mr-1 block h-8 w-8 shrink-0 overflow-hidden rounded-full ring-2 ring-line transition-all hover:ring-violet/40 sm:mr-2 sm:h-9 sm:w-9"
         >
           <img src={avatarUri} alt="Профайлын зураг" className="h-full w-full object-cover" />
         </Link>
-        <nav className="flex flex-1 items-center justify-center gap-0.5 overflow-x-auto sm:gap-1">
+        <nav
+          aria-label="Үндсэн цэс"
+          className="hidden flex-1 items-center justify-center gap-1 sm:flex"
+        >
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = activePath === item.path;
-            const className = cx(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-soft transition-colors duration-150 hover:bg-ink/5 hover:text-ink sm:h-10 sm:w-10',
-              active && 'bg-violet/10 text-violet hover:bg-violet/10 hover:text-violet',
-            );
             return (
-              <Link key={item.path} href={item.href} title={item.label} className={className}>
-                <Icon className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+              <Link
+                key={item.path}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                className={cx(
+                  'flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-2.5 text-sm font-semibold text-ink-soft transition-colors duration-150 hover:bg-ink/5 hover:text-ink md:px-3.5',
+                  active && 'bg-violet/10 text-violet hover:bg-violet/10 hover:text-violet',
+                )}
+              >
+                <Icon className="h-5 w-5" aria-hidden />
+                <span className="hidden md:inline">{item.label}</span>
               </Link>
             );
           })}
         </nav>
+        <div className="flex-1 sm:hidden" />
         <NotificationBell />
         <ThemeToggle />
       </header>
-      <div className="min-w-0">{children}</div>
+      <div className="min-w-0 pb-20 sm:pb-0">{children}</div>
+
+      <nav
+        aria-label="Үндсэн цэс"
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-paper-raised/95 backdrop-blur sm:hidden"
+      >
+        {NAV.map((item) => {
+          const Icon = item.icon;
+          const active = activePath === item.path;
+          return (
+            <Link
+              key={item.path}
+              href={item.href}
+              aria-current={active ? 'page' : undefined}
+              className={cx(
+                'flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[11px] font-semibold text-ink-soft',
+                active && 'text-violet',
+              )}
+            >
+              <Icon className="h-5 w-5" aria-hidden />
+              <span className="max-w-full truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
@@ -68,7 +102,7 @@ export function TwoColumn({
   return (
     <div className="mx-auto flex max-w-6xl items-start max-lg:flex-col">
       <div className="min-w-0 flex-1">{main}</div>
-      <div className="w-80 shrink-0 py-8 pr-8 max-lg:w-full max-lg:px-8 max-lg:pb-8 max-lg:pt-0">
+      <div className="w-80 shrink-0 py-8 pr-8 max-lg:w-full max-lg:px-4 max-lg:pb-8 max-lg:pt-0 sm:max-lg:px-8">
         {side}
       </div>
     </div>
@@ -87,7 +121,7 @@ export function View({
   return (
     <div
       className={cx(
-        'mx-auto p-8',
+        'mx-auto p-4 sm:p-8',
         narrow ? 'max-w-170' : 'max-w-270',
         className,
       )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Shell, View } from '@/components/Shell';
 import { Button, Card, EmptyState, LinkButton } from '@/components/ui';
 import { AnimatedCoin } from '@/components/AnimatedCoin';
@@ -46,7 +47,12 @@ export default function ShopPage() {
     }
   }
 
-  if (!ready) return null;
+  if (!ready)
+    return (
+      <Shell activePath="/shop">
+        <LoadingScreen />
+      </Shell>
+    );
 
   if (!user) {
     return (

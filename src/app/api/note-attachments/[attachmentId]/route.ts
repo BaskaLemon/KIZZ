@@ -4,6 +4,7 @@ import { getDb } from '@/db/client';
 import { noteAttachments, notes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessNote } from '@/lib/access';
+import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ attachmentId: string }> };
 
@@ -35,6 +36,9 @@ export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { attachmentId } = await params;
+  if (!isUuid(attachmentId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const attachment = await loadAccessible(attachmentId, auth.user.id);
   if (!attachment) return notFound();
@@ -53,6 +57,9 @@ export async function DELETE(request: Request, { params }: Params) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
   const { attachmentId } = await params;
+  if (!isUuid(attachmentId)) {
+    return NextResponse.json({ error: 'Олдсонгүй.' }, { status: 404 });
+  }
 
   const attachment = await loadAccessible(attachmentId, auth.user.id);
   if (!attachment) return notFound();

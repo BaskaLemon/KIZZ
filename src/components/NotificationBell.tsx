@@ -45,7 +45,8 @@ export function NotificationBell() {
     return () => document.removeEventListener('mousedown', onDown);
   }, [open]);
 
-  if (!userId) return null;
+  // Keep the slot's size before/without a user so the nav doesn't shift.
+  if (!userId) return <div className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" aria-hidden />;
 
   async function toggle() {
     const next = !open;
@@ -67,6 +68,8 @@ export function NotificationBell() {
       <button
         type="button"
         title="Мэдэгдэл"
+        aria-label={unread > 0 ? `Мэдэгдэл (${unread} уншаагүй)` : 'Мэдэгдэл'}
+        aria-expanded={open}
         onClick={toggle}
         className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-ink-soft transition-colors duration-150 hover:bg-ink/5 hover:text-ink sm:h-10 sm:w-10"
       >
