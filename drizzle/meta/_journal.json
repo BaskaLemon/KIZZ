@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788836895429,
+      "tag": "0000_eager_frank_castle",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788924401432,
+      "tag": "0001_faulty_moonstone",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789006554384,
+      "tag": "0002_normal_tusk",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789007954976,
+      "tag": "0003_wakeful_odin",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789022542213,
+      "tag": "0004_chief_pepper_potts",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789096580480,
+      "tag": "0005_notes_class_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789096598744,
+      "tag": "0006_overconfident_vector",
+      "breakpoints": true
+    }
+  ]
+}

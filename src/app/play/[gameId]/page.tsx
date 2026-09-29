@@ -1,0 +1,205 @@
+'use client';
+
+import { use, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  AnswerGrid,
+  AnswerOption,
+  AnswerBars,
+  Leaderboard,
+  RoomCodeCard,
+  StageHeader,
+  StageScreen,
+  TimerRing,
+} from '@/components/Stage';
+import { Button } from '@/components/ui';
+import { api } from '@/lib/api';
+import { useToast } from '@/lib/toast';
+import type { ApiError, GameState, LeaderboardRow } from '@/lib/types';
+
+const POLL_MS = 1500;
+// Mirrors ANSWER_WINDOW_MS in src/lib/game.ts (the scoring source of
+// truth) — duplicated here rather than imported since that file pulls in
+// server-only DB modules that can't ship to the client bundle.
+const ANSWER_WINDOW_MS = 20_000;
+
+function toLeaderboard(state: GameState): LeaderboardRow[] {
+  return state.players.map((p, i) => ({ id: p.id, rank: i + 1, name: p.name, score: p.score }));
+}
+
+export default function PlayGamePage({
+  params,
+}: {
+  params: Promise<{ gameId: string }>;
+}) {
+  const { gameId } = use(params);
+  const router = useRouter();
+  const toast = useToast();
+  const [state, setState] = useState<GameState | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function poll() {
+      try {
+        const s = await api.getGameState(gameId);
+        if (!cancelled) setState(s);
+      } catch {
+        // Transient poll failures are ignored — the next tick retries.
+      }
+    }
+    poll();
+    pollRef.current = setInterval(poll, POLL_MS);
+    return () => {
+      cancelled = true;
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [gameId]);
+
+  useEffect(() => {
+    const startedAt = state?.questionStartedAt;
+    if (!startedAt || state.status !== 'active' || state.revealed) {
+      setSecondsLeft(0);
+      return;
+    }
+    const tick = () => {
+      const elapsed = Date.now() - new Date(startedAt).getTime();
+      setSecondsLeft(Math.max(0, Math.ceil((ANSWER_WINDOW_MS - elapsed) / 1000)));
+    };
+    tick();
+    const id = setInterval(tick, 250);
+    return () => clearInterval(id);
+  }, [state?.questionStartedAt, state?.status, state?.revealed]);
+
+  async function act<T>(fn: () => Promise<T>) {
+    setBusy(true);
+    try {
+      const result = await fn();
+      return result;
+    } catch (err) {
+      toast((err as ApiError).payload?.error || 'Алдаа гарлаа', 'error');
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleStart() {
+    const s = await act(() => api.startGame(gameId));
+    if (s) setState(s);
+  }
+  async function handleAnswer(optionIndex: number) {
+    const s = await act(() => api.answerGame(gameId, optionIndex));
+    if (s) setState(s);
+  }
+  async function handleReveal() {
+    const s = await act(() => api.revealGame(gameId));
+    if (s) setState(s);
+  }
+  async function handleNext() {
+    const s = await act(() => api.nextGame(gameId));
+    if (s) setState(s);
+  }
+
+  if (!state) {
+    return (
+      <StageScreen>
+        <StageHeader />
+        <p className="text-stage-text-soft">Ачаалж байна...</p>
+      </StageScreen>
+    );
+  }
+
+  return (
+    <StageScreen>
+      <StageHeader>
+        {state.status === 'active' && !state.revealed && (
+          <TimerRing seconds={secondsLeft} />
+        )}
+      </StageHeader>
+
+      {state.status === 'lobby' && (
+        <div className="flex w-full max-w-155 flex-col items-center gap-6">
+          <RoomCodeCard
+            label="Тоглоомд нэгдэх код"
+            code={state.code}
+            hint={`${state.players.length} тоглогч нэгдсэн`}
+          />
+          <Leaderboard rows={toLeaderboard(state)} />
+          {state.isHost ? (
+            <Button variant="primary" size="lg" onClick={handleStart} disabled={busy}>
+              Тоглоом эхлүүлэх
+            </Button>
+          ) : (
+            <p className="text-stage-text-soft">Багш эхлүүлэхийг хүлээж байна...</p>
+          )}
+        </div>
+      )}
+
+      {state.status === 'active' && state.question && !state.revealed && (
+        <div className="flex w-full max-w-225 flex-col items-center gap-6">
+          <p className="text-center font-display text-2xl">{state.question.prompt}</p>
+          <p className="text-stage-text-soft">
+            Асуулт {state.currentQuestionIndex + 1} / {state.totalQuestions}
+          </p>
+          {state.isHost ? (
+            <>
+              <Leaderboard rows={toLeaderboard(state)} />
+              <Button variant="primary" onClick={handleReveal} disabled={busy}>
+                Хариу харуулах
+              </Button>
+            </>
+          ) : (
+            <AnswerGrid>
+              {state.question.options.map((opt, i) => (
+                <AnswerOption
+                  key={i}
+                  index={i}
+                  label={opt}
+                  chosen={state.myAnswer === i}
+                  disabled={state.myAnswer !== null || busy}
+                  onClick={() => handleAnswer(i)}
+                />
+              ))}
+            </AnswerGrid>
+          )}
+          {!state.isHost && state.myAnswer !== null && (
+            <p className="text-stage-text-soft">Хариулт илгээгдлээ, хариу хүлээж байна...</p>
+          )}
+        </div>
+      )}
+
+      {state.status === 'active' && state.question && state.revealed && (
+        <div className="flex w-full max-w-225 flex-col items-center gap-6">
+          <AnswerBars
+            options={state.question.options}
+            optionCounts={state.question.tally ?? state.question.options.map(() => 0)}
+            correctIndex={state.question.correctIndex ?? -1}
+          />
+          <Leaderboard rows={toLeaderboard(state)} />
+          {state.isHost ? (
+            <Button variant="primary" onClick={handleNext} disabled={busy}>
+              {state.currentQuestionIndex + 1 >= state.totalQuestions
+                ? 'Дуусгах'
+                : 'Дараагийн асуулт'}
+            </Button>
+          ) : (
+            <p className="text-stage-text-soft">Дараагийн асуултыг хүлээж байна...</p>
+          )}
+        </div>
+      )}
+
+      {state.status === 'finished' && (
+        <div className="flex w-full max-w-155 flex-col items-center gap-6">
+          <p className="font-display text-3xl">Тоглоом дууслаа!</p>
+          <Leaderboard rows={toLeaderboard(state)} />
+          <Button variant="ghost" stage onClick={() => router.push('/play')}>
+            Буцах
+          </Button>
+        </div>
+      )}
+    </StageScreen>
+  );
+}

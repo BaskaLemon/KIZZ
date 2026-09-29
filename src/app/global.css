@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-paper: #fbf3ec;
+  --color-paper-raised: #ffffff;
+  --color-ink: #151220;
+  --color-ink-soft: #6b6458;
+  --color-line: rgba(21, 18, 32, 0.14);
+
+  --color-violet: #f2811a;
+  --color-mint: #10b981;
+  --color-coral: #f43f5e;
+  --color-amber: #f59e0b;
+  --color-bold-quiz: #db2777;
+
+  --color-stage: #151220;
+  --color-stage-raised: #201c30;
+  --color-stage-text: #ffffff;
+  --color-stage-text-soft: rgba(255, 255, 255, 0.6);
+
+  --color-rail-bg: #151220;
+  --color-rail-active-bg: rgba(255, 255, 255, 0.1);
+  --color-rail-icon: rgba(255, 255, 255, 0.4);
+  --color-rail-icon-active: #ffffff;
+
+  --color-answer-1: #2563eb;
+  --color-answer-2: #f97316;
+  --color-answer-3: #db2777;
+  --color-answer-4: #16a34a;
+
+  --font-display: var(--font-fredoka), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+}
+
+.dark {
+  --color-paper: #151220;
+  --color-paper-raised: #1e1a2c;
+  --color-ink: #f4f2f0;
+  --color-ink-soft: #a39cb0;
+  --color-line: rgba(255, 255, 255, 0.12);
+
+  --color-violet: #fb923c;
+  --color-mint: #34d399;
+  --color-coral: #fb7185;
+  --color-amber: #fbbf24;
+  --color-bold-quiz: #ec4899;
+
+  --color-rail-bg: #0e0c16;
+  --color-rail-active-bg: rgba(255, 255, 255, 0.1);
+  --color-rail-icon: rgba(255, 255, 255, 0.4);
+  --color-rail-icon-active: #ffffff;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    Segoe UI,
+    Roboto,
+    Helvetica Neue,
+    Arial,
+    Noto Sans,
+    sans-serif,
+    Apple Color Emoji,
+    Segoe UI Emoji,
+    Segoe UI Symbol,
+    Noto Color Emoji;
+  line-height: 1.5;
+  tab-size: 4;
+  scroll-behavior: smooth;
+}
+body {
+  position: relative;
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: -40px;
+  z-index: -1;
+  background-image: url('/doodle-bg.webp');
+  background-size: 1100px 1100px;
+  background-repeat: repeat;
+  filter: blur(0px);
+  opacity: 0.1;
+  pointer-events: none;
+}
+.dark body::before {
+  filter: invert(1) blur(0px);
+  opacity: 0.06;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  margin: 0;
+  line-height: 1.15;
+}
+p {
+  margin: 0;
+}
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+:focus-visible {
+  outline: 3px solid var(--color-violet);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-pop-in {
+  animation: pop-in 0.25s ease;
+}
+
+.shape-triangle {
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+.shape-diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+.shape-circle {
+  border-radius: 50%;
+}
+.shape-square {
+  border-radius: 5px;
+}

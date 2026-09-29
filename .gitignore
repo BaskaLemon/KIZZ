@@ -1,0 +1,8 @@
+node_modules
+.next
+.env
+.env.local
+.dev.vars
+.secrets-env
+*.tsbuildinfo
+coverage
