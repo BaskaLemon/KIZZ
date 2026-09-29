@@ -5,6 +5,7 @@ import { notes, quizzes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessNote } from '@/lib/access';
 import { toQuiz } from '@/lib/mappers';
+import { generateAiQuestions, isAiConfigured } from '@/lib/quiz/generateAi';
 import { generateRuleBasedQuestions } from '@/lib/quiz/generateRuleBased';
 
 type Params = { params: Promise<{ noteId: string }> };
@@ -33,20 +34,25 @@ export async function POST(request: Request, { params }: Params) {
       : 5;
   const mode = typeof body?.mode === 'string' ? body.mode : 'rule-based';
 
-  if (mode === 'ai') {
-    // No LLM is wired up in this deployment — no AI SDK dependency and no
-    // API key in the secrets manager. Fail loudly rather than silently
-    // generating a rule-based quiz and mislabeling it `generatedBy: 'ai'`.
+  const useAi = mode === 'ai';
+  if (useAi && !isAiConfigured()) {
     return NextResponse.json(
-      {
-        error:
-          'AI quiz generation is not configured for this app yet. Use rule-based mode.',
-      },
+      { error: 'AI quiz тохируулагдаагүй байна (GEMINI_API_KEY). Дүрэмт горим ашиглана уу.' },
       { status: 501 },
     );
   }
 
-  const questions = generateRuleBasedQuestions(note.content, count);
+  let questions;
+  try {
+    questions = useAi
+      ? await generateAiQuestions(note.content, count)
+      : generateRuleBasedQuestions(note.content, count);
+  } catch {
+    return NextResponse.json(
+      { error: 'AI асуулт үүсгэж чадсангүй. Дахин оролдоно уу.' },
+      { status: 502 },
+    );
+  }
   if (questions.length === 0) {
     return NextResponse.json(
       {
@@ -65,7 +71,7 @@ export async function POST(request: Request, { params }: Params) {
       sourceNoteId: note.id,
       title: note.title,
       questions,
-      generatedBy: 'rule-based',
+      generatedBy: useAi ? 'ai' : 'rule-based',
     })
     .returning();
 

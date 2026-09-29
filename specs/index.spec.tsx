@@ -1,4 +1,3 @@
-import React from 'react';
 import { render } from '@testing-library/react';
 import { AuthProvider } from '../src/lib/auth';
 import { ToastProvider } from '../src/lib/toast';

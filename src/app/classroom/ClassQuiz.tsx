@@ -104,7 +104,7 @@ export function ClassQuiz({ classId }: { classId: string }) {
         <h3 className="mb-2.5 text-lg">Тэмдэглэлээс quiz үүсгэх</h3>
         {notes === null ? null : notes.length === 0 ? (
           <EmptyState title="Тэмдэглэл алга">
-            <p>Эхлээд "Тэмдэглэл" таб дээр тэмдэглэл үүсгээрэй.</p>
+            <p>Эхлээд &quot;Тэмдэглэл&quot; таб дээр тэмдэглэл үүсгээрэй.</p>
           </EmptyState>
         ) : (
           <div className="flex flex-col gap-3">

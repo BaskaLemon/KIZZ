@@ -5,7 +5,7 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import { Button, Card, EmptyState, TextInput } from '@/components/ui';
 import { NoteEditor, type SaveStatus } from '@/components/NoteEditor';
 import { QuizGenButton } from '@/components/QuizGenButton';
-import { MediaUploaderPlaceholder } from '@/components/MediaUploaderPlaceholder';
+import { NoteAttachments } from '@/components/NoteAttachments';
 import { UserAvatarList, type Collaborator } from '@/components/UserAvatarList';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
@@ -41,6 +41,8 @@ export function ClassNotes({
   const [creating, setCreating] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef({ title: '', content: '' });
+  // updatedAt of the version our edits are based on (for conflict detection).
+  const baseUpdatedAt = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     api
@@ -69,6 +71,7 @@ export function ClassNotes({
         setContent(note.content);
         setStatus('saved');
         latest.current = { title: note.title, content: note.content };
+        baseUpdatedAt.current = note.updatedAt;
       })
       .catch((err: ApiError) => {
         if (cancelled) return;
@@ -86,7 +89,11 @@ export function ClassNotes({
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       try {
-        const saved = await api.updateNote(noteId, latest.current);
+        const saved = await api.updateNote(noteId, {
+          ...latest.current,
+          baseUpdatedAt: baseUpdatedAt.current,
+        });
+        baseUpdatedAt.current = saved.updatedAt;
         setStatus('saved');
         setActiveNote(saved);
         setNotes((prev) =>
@@ -94,8 +101,25 @@ export function ClassNotes({
             ? [saved, ...prev.filter((n) => n.id !== saved.id)]
             : prev,
         );
-      } catch {
-        setStatus('error');
+      } catch (err) {
+        const apiErr = err as ApiError;
+        const latestNote = (apiErr.payload as { latest?: Note } | undefined)?.latest;
+        if (apiErr.status === 409 && latestNote) {
+          // Someone else saved first — show their version instead of
+          // overwriting it.
+          baseUpdatedAt.current = latestNote.updatedAt;
+          latest.current = { title: latestNote.title, content: latestNote.content };
+          setActiveNote(latestNote);
+          setTitle(latestNote.title);
+          setContent(latestNote.content);
+          setStatus('saved');
+          toast(
+            `${latestNote.updatedByName || 'Өөр хэн нэгэн'} тэмдэглэлийг өөрчилсөн тул шинэ хувилбарыг харууллаа`,
+            'error',
+          );
+        } else {
+          setStatus('error');
+        }
       }
     }, AUTOSAVE_DELAY);
   }
@@ -197,7 +221,7 @@ export function ClassNotes({
                 PDF болон зураг хавсаргаж, тэмдэглэлээ баяжуулаарай.
               </p>
               <div className="mt-4">
-                <MediaUploaderPlaceholder />
+                <NoteAttachments noteId={activeNote.id} />
               </div>
             </Card>
           </div>

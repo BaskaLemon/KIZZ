@@ -4,6 +4,7 @@ import { getDb } from '@/db/client';
 import { classMaterials } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
+import { classStudentIds, notifyUsers } from '@/lib/notifications';
 import { toMaterial } from '@/lib/mappers';
 import {
   insertMaterial,
@@ -59,6 +60,11 @@ export async function POST(request: Request, { params }: Params) {
     classId,
     uploadedBy: auth.user.id,
     file: file as File,
+  });
+  await notifyUsers(await classStudentIds(classId), {
+    title: `Шинэ материал: ${row.fileName}`,
+    body: `${klass.name} ангид`,
+    href: `/classroom?classId=${classId}`,
   });
   return NextResponse.json(toMaterial(row), { status: 201 });
 }

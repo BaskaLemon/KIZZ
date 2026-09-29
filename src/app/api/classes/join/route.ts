@@ -4,6 +4,7 @@ import { getDb } from '@/db/client';
 import { classCoTeachers, classMembers, classes, users } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
+import { notifyUsers } from '@/lib/notifications';
 import { toClass } from '@/lib/mappers';
 
 export async function POST(request: Request) {
@@ -49,6 +50,11 @@ export async function POST(request: Request) {
       await db
         .insert(classMembers)
         .values({ classId: klass.id, studentId: auth.user.id });
+      await notifyUsers([klass.teacherId], {
+        title: `${auth.user.name} ангид нэгдлээ`,
+        body: klass.name,
+        href: `/classroom?classId=${klass.id}`,
+      });
     }
   }
 

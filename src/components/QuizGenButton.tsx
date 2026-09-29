@@ -8,6 +8,8 @@ import type { ApiError, Quiz } from '../lib/types';
 
 const COUNT_OPTIONS = [3, 5, 10];
 
+type Mode = 'rule-based' | 'ai';
+
 export function QuizGenButton({
   noteId,
   noteTitle,
@@ -20,6 +22,7 @@ export function QuizGenButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState(5);
+  const [mode, setMode] = useState<Mode>('rule-based');
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>(
     'idle',
   );
@@ -37,7 +40,7 @@ export function QuizGenButton({
   async function generate() {
     setStatus('loading');
     try {
-      const generated = await api.generateQuiz(noteId, count, 'rule-based');
+      const generated = await api.generateQuiz(noteId, count, mode);
       setQuiz(generated);
       setStatus('done');
       onGenerated?.(generated);
@@ -77,7 +80,7 @@ export function QuizGenButton({
             <div className="flex items-center justify-between">
               <div>
                 <span className="inline-block rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-600">
-                  Дүрэмт (AI биш)
+                  {mode === 'ai' ? 'AI' : 'Дүрэмт (AI биш)'}
                 </span>
                 <h2 className="mt-2 text-xl font-bold text-ink">
                   Quiz үүсгэх
@@ -96,9 +99,33 @@ export function QuizGenButton({
             {status !== 'done' && (
               <>
                 <p className="mt-4 text-sm text-ink-soft">
-                  "{noteTitle || 'Тэмдэглэл'}" тэмдэглэлийн агуулгаас
-                  хоосон зай бөглөх асуулт үүсгэнэ.
+                  &quot;{noteTitle || 'Тэмдэглэл'}&quot; тэмдэглэлийн агуулгаас
+                  {mode === 'ai'
+                    ? 'агуулгаас AI олон сонголттой асуулт үүсгэнэ.'
+                    : 'хоосон зай бөглөх асуулт үүсгэнэ.'}
                 </p>
+
+                <div className="mt-4 flex gap-2">
+                  {(
+                    [
+                      ['rule-based', 'Дүрэмт'],
+                      ['ai', 'AI'],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setMode(value)}
+                      className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
+                        mode === value
+                          ? 'border-transparent bg-ink text-paper'
+                          : 'border-line bg-paper-raised text-ink hover:border-ink/30'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
 
                 {status === 'error' && (
                   <p className="mt-3 rounded-lg bg-coral/10 px-3 py-2 text-sm font-medium text-coral">

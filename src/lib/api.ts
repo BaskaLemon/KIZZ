@@ -13,7 +13,9 @@ import type {
   GameState,
   Group,
   Material,
+  AppNotification,
   Note,
+  NoteAttachment,
   PointTransaction,
   PurchaseResult,
   Quiz,
@@ -120,7 +122,7 @@ export const api = {
   createClassNote: (classId: string, title: string) =>
     request<Note>('POST', `/classes/${classId}/notes`, { title }),
   getNote: (noteId: string) => request<Note>('GET', `/notes/${noteId}`),
-  updateNote: (noteId: string, patch: { title?: string; content?: string }) =>
+  updateNote: (noteId: string, patch: { title?: string; content?: string; baseUpdatedAt?: string }) =>
     request<Note>('PATCH', `/notes/${noteId}`, patch),
 
   // quizzes
@@ -185,6 +187,17 @@ export const api = {
     downloadFile(`/materials/${materialId}`),
   deleteMaterial: (materialId: string) =>
     request('DELETE', `/materials/${materialId}`),
+  listNotifications: () =>
+    request<{ items: AppNotification[]; unread: number }>('GET', '/notifications'),
+  markNotificationsRead: () => request('POST', '/notifications/read'),
+  listNoteAttachments: (noteId: string) =>
+    request<NoteAttachment[]>('GET', `/notes/${noteId}/attachments`),
+  uploadNoteAttachment: (noteId: string, file: File) =>
+    uploadFile<NoteAttachment>(`/notes/${noteId}/attachments`, file),
+  downloadNoteAttachment: (attachmentId: string) =>
+    downloadFile(`/note-attachments/${attachmentId}`),
+  deleteNoteAttachment: (attachmentId: string) =>
+    request('DELETE', `/note-attachments/${attachmentId}`),
   listAssignments: (classId: string) =>
     request<Assignment[]>('GET', `/classes/${classId}/assignments`),
   createAssignment: (

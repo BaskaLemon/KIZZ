@@ -5,6 +5,7 @@ import type {
   ClassRow,
   GameSessionRow,
   GroupRow,
+  NoteAttachmentRow,
   NoteRow,
   QuizRow,
   SubmissionRow,
@@ -17,6 +18,7 @@ import type {
   Group,
   Material,
   Note,
+  NoteAttachment,
   Quiz,
   Submission,
 } from '@/lib/types';
@@ -93,6 +95,18 @@ export const toMaterial = (
 ): Material => ({
   id: row.id,
   classId: row.classId,
+  uploadedBy: row.uploadedBy,
+  fileName: row.fileName,
+  mimeType: row.mimeType,
+  sizeBytes: row.sizeBytes,
+  createdAt: row.createdAt.toISOString(),
+});
+
+export const toNoteAttachment = (
+  row: Omit<NoteAttachmentRow, 'data'>,
+): NoteAttachment => ({
+  id: row.id,
+  noteId: row.noteId,
   uploadedBy: row.uploadedBy,
   fileName: row.fileName,
   mimeType: row.mimeType,

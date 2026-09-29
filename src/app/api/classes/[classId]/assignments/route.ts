@@ -5,6 +5,7 @@ import { assignments, quizzes, submissions } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessQuiz, getClassMembership } from '@/lib/access';
 import { toAssignment } from '@/lib/mappers';
+import { classStudentIds, notifyUsers } from '@/lib/notifications';
 import { insertMaterial, validateMaterialFile } from '@/lib/materials';
 
 type Params = { params: Promise<{ classId: string }> };
@@ -148,6 +149,12 @@ export async function POST(request: Request, { params }: Params) {
       dueAt: dueAt ? new Date(dueAt) : null,
     })
     .returning();
+
+  await notifyUsers(await classStudentIds(classId), {
+    title: `Шинэ даалгавар: ${title}`,
+    body: `${klass.name} ангид${dueAt ? ' — хугацаа: ' + new Date(dueAt).toLocaleDateString('mn-MN') : ''}`,
+    href: `/classroom?classId=${classId}`,
+  });
 
   return NextResponse.json(toAssignment(row), { status: 201 });
 }

@@ -106,6 +106,8 @@ export function AvatarCustomizer({
   const [draft, setDraft] = useState<AvatarOptions>(initial);
 
   useEffect(() => {
+    // Re-seed the draft each time the dialog opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) setDraft(initial);
   }, [open, initial]);
 

@@ -10,7 +10,7 @@ function getConnectionString(): string {
   const value = process.env.DATABASE_URL;
   if (!value) {
     throw new Error(
-      'DATABASE_URL is not set. Add it to apps/studyjam/.env.local for local dev — see apps/studyjam/.env.local.example.',
+      'DATABASE_URL is not set. Add it to .env.local for local dev — see .env.local.example.',
     );
   }
   return value;

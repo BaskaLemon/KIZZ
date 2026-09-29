@@ -50,6 +50,20 @@
       "when": 1789096598744,
       "tag": "0006_overconfident_vector",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790696676336,
+      "tag": "0007_note_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790697049291,
+      "tag": "0008_notifications",
+      "breakpoints": true
     }
   ]
 }

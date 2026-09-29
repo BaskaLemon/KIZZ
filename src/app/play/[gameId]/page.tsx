@@ -61,6 +61,7 @@ export default function PlayGamePage({
   useEffect(() => {
     const startedAt = state?.questionStartedAt;
     if (!startedAt || state.status !== 'active' || state.revealed) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSecondsLeft(0);
       return;
     }

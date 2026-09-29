@@ -4,7 +4,7 @@ function getSecret(): Uint8Array {
   const value = process.env.AUTH_SECRET;
   if (!value) {
     throw new Error(
-      'AUTH_SECRET is not set. Add it to apps/studyjam/.env.local for local dev — see apps/studyjam/.env.local.example.',
+      'AUTH_SECRET is not set. Add it to .env.local for local dev — see .env.local.example.',
     );
   }
   return new TextEncoder().encode(value);

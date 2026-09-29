@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useMounted } from '@/hooks/useMounted';
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
   // next-themes only knows the real theme after mount (it reads localStorage
   // client-side) — render a stable placeholder until then to avoid a
   // server/client mismatch.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   const isDark = mounted && resolvedTheme === 'dark';
 

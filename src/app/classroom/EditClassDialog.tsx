@@ -51,6 +51,8 @@ export function EditClassDialog({
   const [newFolderName, setNewFolderName] = useState('');
 
   useEffect(() => {
+    // Re-seed the form each time the dialog opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (open) setDraft(toDraft(klass));
   }, [open, klass]);
 

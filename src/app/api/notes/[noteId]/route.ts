@@ -60,6 +60,24 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: 'Буруу хүсэлт.' }, { status: 400 });
   }
 
+  // Optimistic concurrency: the client sends the `updatedAt` it last saw. If
+  // someone else has saved since, refuse and hand back the latest version
+  // instead of silently overwriting their edit.
+  if (
+    typeof body.baseUpdatedAt === 'string' &&
+    note.updatedBy !== auth.user.id &&
+    note.updatedAt.getTime() > new Date(body.baseUpdatedAt).getTime()
+  ) {
+    const names = await resolveUserNames([note.updatedBy]);
+    return NextResponse.json(
+      {
+        error: 'Өөр хэн нэгэн энэ тэмдэглэлийг өөрчилсөн байна.',
+        latest: toNote(note, names.get(note.updatedBy)),
+      },
+      { status: 409 },
+    );
+  }
+
   const patch: Partial<typeof notes.$inferInsert> = { updatedBy: auth.user.id };
 
   if ('title' in body) {

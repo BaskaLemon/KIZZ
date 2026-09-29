@@ -133,6 +133,25 @@ export interface Material {
   createdAt: string;
 }
 
+export interface NoteAttachment {
+  id: string;
+  noteId: string;
+  uploadedBy: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  href: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
 export interface ClassPeople {
   /** Primary teacher first, then any co-teachers who joined by code. */
   teachers: { id: string; name: string; isPrimary: boolean }[];

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Button, Field, TextInput } from '@/components/ui';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useMounted } from '@/hooks/useMounted';
 import { cx } from '@/lib/cx';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
@@ -23,8 +24,7 @@ export default function LoginPage() {
   // resolvedTheme is unknown until mounted (next-themes reads localStorage
   // client-side) — default to the light logo so server and first client
   // render agree, then switch once we know the real theme.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
   const logoSrc = mounted && resolvedTheme === 'dark' ? '/logo2.jpeg' : '/logo.jpeg';
 
   const [mode, setMode] = useState<Mode>('signin');

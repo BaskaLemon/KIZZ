@@ -92,6 +92,46 @@ export const notes = pgTable('notes', {
 
 export type NoteRow = typeof notes.$inferSelect;
 
+// Files attached to a note (PDF/images). Same storage approach as
+// classMaterials: base64 in Postgres, capped per file in the upload route.
+export const noteAttachments = pgTable('note_attachments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  noteId: uuid('note_id')
+    .notNull()
+    .references(() => notes.id, { onDelete: 'cascade' }),
+  uploadedBy: uuid('uploaded_by')
+    .notNull()
+    .references(() => users.id),
+  fileName: text('file_name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  data: text('data').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type NoteAttachmentRow = typeof noteAttachments.$inferSelect;
+
+// --- Notifications --------------------------------------------------------
+
+export const notifications = pgTable('notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  body: text('body').notNull().default(''),
+  // App-relative link the notification opens, e.g. /classroom?classId=...
+  href: text('href'),
+  readAt: timestamp('read_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type NotificationRow = typeof notifications.$inferSelect;
+
 // --- Quizzes --------------------------------------------------------------
 
 export const quizzes = pgTable('quizzes', {

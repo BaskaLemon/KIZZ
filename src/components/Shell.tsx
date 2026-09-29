@@ -6,6 +6,7 @@ import { Home, FileText, Bot, GraduationCap, Store } from 'lucide-react';
 import { useAvatar } from '@/hooks/useAvatar';
 import { cx } from '@/lib/cx';
 import { ThemeToggle } from './ThemeToggle';
+import { NotificationBell } from './NotificationBell';
 
 const NAV = [
   { path: '/', icon: Home, label: 'Нүүр', href: '/' },
@@ -49,6 +50,7 @@ export function Shell({
             );
           })}
         </nav>
+        <NotificationBell />
         <ThemeToggle />
       </header>
       <div className="min-w-0">{children}</div>
