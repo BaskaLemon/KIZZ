@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { levelForXp } from '@/lib/points/level';
+import { levelForXp, xpAtLevelStart, xpToNextLevel } from '@/lib/points/level';
+import {
+  DAILY_GAME_COIN_CAP,
+  MIN_PLAYERS_FOR_REWARDS,
+  assignmentCoins,
+  assignmentXp,
+  startOfTodayUb,
+  todayUb,
+} from '@/lib/points/rules';
 import { isUuid } from '@/lib/uuid';
 import { normalizeMime } from '@/lib/materials';
 import { matchesSignature } from '@/lib/fileSignature';
@@ -8,11 +16,39 @@ import { optionalText } from '@/lib/text';
 import { randomCode } from '@/lib/codes';
 
 describe('levelForXp', () => {
-  it('starts at level 1 and gains a level every 100 xp', () => {
-    expect(levelForXp(0)).toMatchObject({ level: 1, xpIntoLevel: 0 });
+  it('levels get progressively harder: 100, 150, 200, ... xp per level', () => {
+    expect(levelForXp(0)).toMatchObject({ level: 1, xpIntoLevel: 0, xpForNextLevel: 100 });
     expect(levelForXp(99)).toMatchObject({ level: 1, xpIntoLevel: 99 });
-    expect(levelForXp(100)).toMatchObject({ level: 2, xpIntoLevel: 0 });
-    expect(levelForXp(500).level).toBe(6);
+    expect(levelForXp(100)).toMatchObject({ level: 2, xpIntoLevel: 0, xpForNextLevel: 150 });
+    expect(levelForXp(249).level).toBe(2);
+    expect(levelForXp(250)).toMatchObject({ level: 3, xpForNextLevel: 200 });
+    expect(levelForXp(450).level).toBe(4);
+    expect(levelForXp(700).level).toBe(5);
+  });
+  it('level thresholds match the per-level costs', () => {
+    for (let level = 1; level < 30; level++) {
+      expect(xpAtLevelStart(level + 1) - xpAtLevelStart(level)).toBe(xpToNextLevel(level));
+      expect(levelForXp(xpAtLevelStart(level)).level).toBe(level);
+      expect(levelForXp(xpAtLevelStart(level + 1) - 1).level).toBe(level);
+    }
+  });
+});
+
+describe('economy rules', () => {
+  it('assignment rewards scale with the score', () => {
+    expect(assignmentXp(100)).toBe(50);
+    expect(assignmentCoins(100)).toBe(10);
+    expect(assignmentXp(0)).toBe(0);
+  });
+  it('uses the Ulaanbaatar calendar day (UTC+8), not UTC', () => {
+    // 20:00 UTC on the 1st is already the 2nd in Ulaanbaatar
+    expect(todayUb(new Date('2026-10-01T20:00:00Z'))).toBe('2026-10-02');
+    expect(todayUb(new Date('2026-10-01T10:00:00Z'))).toBe('2026-10-01');
+    expect(startOfTodayUb(new Date('2026-10-01T20:00:00Z')).toISOString()).toBe('2026-10-01T16:00:00.000Z');
+  });
+  it('a game needs a few players before it pays out', () => {
+    expect(MIN_PLAYERS_FOR_REWARDS).toBeGreaterThanOrEqual(3);
+    expect(DAILY_GAME_COIN_CAP).toBeGreaterThan(0);
   });
 });
 

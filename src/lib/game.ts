@@ -1,6 +1,15 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { gameAnswers, gamePlayers, gameSessions, quizzes, users } from '@/db/schema';
+import {
+  gameAnswers,
+  gamePlayers,
+  gameResults,
+  gameSessions,
+  pointTransactions,
+  quizzes,
+  users,
+} from '@/db/schema';
+import { awardPlacementPoints } from '@/lib/points/placement';
 import type { GameState } from '@/lib/types';
 
 /** Every "answer" route (join/start/answer/reveal/next) mutates one row and
@@ -59,6 +68,30 @@ export async function loadGameState(
     myAnswer = mine ? mine.optionIndex : null;
   }
 
+  let myReward: GameState['myReward'] = null;
+  if (session.status === 'finished' && me) {
+    const [result] = await db
+      .select({ rank: gameResults.rank, coins: gameResults.awardedPoints })
+      .from(gameResults)
+      .where(and(eq(gameResults.gameSessionId, gameSessionId), eq(gameResults.userId, userId)))
+      .limit(1);
+    const [earned] = await db
+      .select({ xp: sql<number>`coalesce(sum(${pointTransactions.xp}), 0)::int` })
+      .from(pointTransactions)
+      .where(
+        and(
+          eq(pointTransactions.userId, userId),
+          eq(pointTransactions.type, 'quiz_placement'),
+          eq(pointTransactions.referenceId, gameSessionId),
+        ),
+      );
+    myReward = {
+      rank: result?.rank ?? null,
+      coins: result?.coins ?? 0,
+      xp: earned?.xp ?? 0,
+    };
+  }
+
   let answeredCount = 0;
   let question: GameState['question'] = null;
   if (session.status === 'active') {
@@ -105,6 +138,7 @@ export async function loadGameState(
     question,
     myAnswer,
     answeredCount,
+    myReward,
     players: playerRows.map((p) => ({
       id: p.id,
       userId: p.userId,
@@ -114,4 +148,26 @@ export async function loadGameState(
       equippedItemId: p.equippedItemId,
     })),
   };
+}
+
+/** Ends a game: ranks the real players by their recorded score, pays out
+ * (see awardPlacementPoints for the anti-farming rules) and marks it
+ * finished. Results are always computed here — never taken from a client. */
+export async function finishGameSession(gameSessionId: string) {
+  const db = getDb();
+  const finalPlayers = await db
+    .select()
+    .from(gamePlayers)
+    .where(eq(gamePlayers.gameSessionId, gameSessionId))
+    .orderBy(desc(gamePlayers.score));
+
+  const results = await awardPlacementPoints(
+    gameSessionId,
+    finalPlayers.map((p, i) => ({ userId: p.userId, rank: i + 1, score: p.score })),
+  );
+  await db
+    .update(gameSessions)
+    .set({ status: 'finished' })
+    .where(eq(gameSessions.id, gameSessionId));
+  return results;
 }

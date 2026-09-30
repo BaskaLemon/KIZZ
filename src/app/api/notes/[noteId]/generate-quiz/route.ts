@@ -5,6 +5,8 @@ import { notes, quizzes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessNote } from '@/lib/access';
 import { toQuiz } from '@/lib/mappers';
+import { awardOnce } from '@/lib/points/awards';
+import { FIRST_QUIZ_XP } from '@/lib/points/rules';
 import { rateLimit } from '@/lib/rateLimit';
 import { generateAiQuestions, isAiConfigured } from '@/lib/quiz/generateAi';
 import { isUuid } from '@/lib/uuid';
@@ -91,5 +93,6 @@ export async function POST(request: Request, { params }: Params) {
     })
     .returning();
 
-  return NextResponse.json(toQuiz(row), { status: 201 });
+  const xp = await awardOnce(auth.user.id, 'first_quiz', FIRST_QUIZ_XP, 'Анхны quiz');
+  return NextResponse.json({ ...toQuiz(row), reward: xp ? { xp } : undefined }, { status: 201 });
 }

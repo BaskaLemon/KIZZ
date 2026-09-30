@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
 import { UNIQUE_VIOLATION, pgErrorCode } from '@/lib/dbErrors';
 import { classTeacherIds, notifyUsers } from '@/lib/notifications';
+import { awardAssignmentCompletion } from '@/lib/points/awards';
 import type { SubmitResult } from '@/lib/types';
 import { isUuid } from '@/lib/uuid';
 
@@ -81,6 +82,8 @@ export async function POST(request: Request, { params }: Params) {
       totalQuestions === 0 ? 0 : Math.round((correctCount / totalQuestions) * 100);
   }
 
+  let reward: SubmitResult['reward'] = undefined;
+
   const [existing] = await db
     .select({ id: submissions.id })
     .from(submissions)
@@ -120,6 +123,11 @@ export async function POST(request: Request, { params }: Params) {
     }
   }
 
+  // The first time a quiz is completed it earns XP (resubmitting doesn't).
+  if (!existing && assignment.quizId && score !== null) {
+    reward = (await awardAssignmentCompletion(auth.user.id, assignmentId, score)) ?? undefined;
+  }
+
   // Without a quiz nothing is auto-graded, so tell the admins there is
   // something waiting for a grade.
   if (!assignment.quizId) {
@@ -130,6 +138,6 @@ export async function POST(request: Request, { params }: Params) {
     });
   }
 
-  const result: SubmitResult = { score, correctCount, totalQuestions };
+  const result: SubmitResult = { score, correctCount, totalQuestions, reward };
   return NextResponse.json(result, { status: existing ? 200 : 201 });
 }

@@ -4,6 +4,8 @@ import { getDb } from '@/db/client';
 import { notes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { toNote } from '@/lib/mappers';
+import { awardOnce } from '@/lib/points/awards';
+import { FIRST_NOTE_XP } from '@/lib/points/rules';
 
 /** Personal notes — visible only to their owner. */
 export async function GET(request: Request) {
@@ -42,5 +44,6 @@ export async function POST(request: Request) {
     })
     .returning();
 
-  return NextResponse.json(toNote(row, auth.user.name), { status: 201 });
+  const xp = await awardOnce(auth.user.id, 'first_note', FIRST_NOTE_XP, 'Анхны тэмдэглэл');
+  return NextResponse.json({ ...toNote(row, auth.user.name), reward: xp ? { xp } : undefined }, { status: 201 });
 }

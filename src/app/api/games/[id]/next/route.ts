@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { gamePlayers, gameSessions, quizzes } from '@/db/schema';
+import { gameSessions, quizzes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
-import { loadGameState } from '@/lib/game';
-import { awardPlacementPoints } from '@/lib/points/placement';
+import { finishGameSession, loadGameState } from '@/lib/game';
 import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ id: string }> };
@@ -51,21 +50,7 @@ export async function POST(request: Request, { params }: Params) {
   const isLastQuestion = session.currentQuestionIndex + 1 >= totalQuestions;
 
   if (isLastQuestion) {
-    const finalPlayers = await db
-      .select()
-      .from(gamePlayers)
-      .where(eq(gamePlayers.gameSessionId, id))
-      .orderBy(desc(gamePlayers.score));
-
-    await awardPlacementPoints(
-      id,
-      finalPlayers.map((p, i) => ({ userId: p.userId, rank: i + 1, score: p.score })),
-    );
-
-    await db
-      .update(gameSessions)
-      .set({ status: 'finished' })
-      .where(eq(gameSessions.id, id));
+    await finishGameSession(id);
   } else {
     await db
       .update(gameSessions)

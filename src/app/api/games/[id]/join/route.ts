@@ -20,12 +20,22 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const [session] = await getDb()
-    .select({ id: gameSessions.id })
+    .select({ id: gameSessions.id, createdBy: gameSessions.createdBy, status: gameSessions.status })
     .from(gameSessions)
     .where(eq(gameSessions.id, id))
     .limit(1);
   if (!session) {
     return NextResponse.json({ error: 'Тоглоом олдсонгүй.' }, { status: 404 });
+  }
+
+  if (session.createdBy === auth.user.id) {
+    return NextResponse.json(
+      { error: 'Тоглоомыг эхлүүлсэн хүн өөрийн тоглоомд тоглогчоор нэгдэх боломжгүй.' },
+      { status: 403 },
+    );
+  }
+  if (session.status === 'finished') {
+    return NextResponse.json({ error: 'Энэ тоглоом дууссан байна.' }, { status: 409 });
   }
 
   try {

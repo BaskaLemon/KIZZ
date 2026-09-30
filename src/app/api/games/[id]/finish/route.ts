@@ -3,38 +3,15 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { gameSessions } from '@/db/schema';
 import { getAuthenticatedUser } from '@/lib/auth/session';
-import { awardPlacementPoints, type PlacementInput } from '@/lib/points/placement';
+import { finishGameSession } from '@/lib/game';
 import { isUuid } from '@/lib/uuid';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-function parseResults(body: unknown): PlacementInput[] | null {
-  if (!body || typeof body !== 'object' || !Array.isArray((body as { results?: unknown }).results)) {
-    return null;
-  }
-  const results = (body as { results: unknown[] }).results;
-  const parsed: PlacementInput[] = [];
-  for (const entry of results) {
-    if (
-      !entry ||
-      typeof entry !== 'object' ||
-      typeof (entry as { userId?: unknown }).userId !== 'string' ||
-      typeof (entry as { rank?: unknown }).rank !== 'number' ||
-      typeof (entry as { score?: unknown }).score !== 'number'
-    ) {
-      return null;
-    }
-    const e = entry as { userId: string; rank: number; score: number };
-    parsed.push({ userId: e.userId, rank: e.rank, score: e.score });
-  }
-  return parsed;
-}
-
-// The normal way a game ends is /next reaching the last question, which
-// pays out via the same awardPlacementPoints call below. This route stays
-// as a host-only, one-time fallback rather than being removed.
+// The normal way a game ends is /next reaching the last question. This route
+// is a host-only early finish and uses the same server-side payout.
 export async function POST(request: Request, { params }: RouteParams) {
   const user = await getAuthenticatedUser(request);
   if (!user) {
@@ -70,19 +47,14 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  const body = await request.json().catch(() => null);
-  const results = parseResults(body);
-  if (!results) {
+  if (session.status === 'lobby') {
     return NextResponse.json(
-      { error: 'results: [{ userId, rank, score }] шаардлагатай.' },
+      { error: 'Тоглоом эхлээгүй байна.' },
       { status: 400 },
     );
   }
 
-  const payouts = await awardPlacementPoints(id, results);
-  await getDb()
-    .update(gameSessions)
-    .set({ status: 'finished' })
-    .where(eq(gameSessions.id, id));
+  // Standings come from the recorded scores, never from the request body.
+  const payouts = await finishGameSession(id);
   return NextResponse.json({ results: payouts });
 }

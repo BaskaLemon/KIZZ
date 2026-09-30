@@ -20,6 +20,7 @@ export default function ShopPage() {
   const toast = useToast();
   const [items, setItems] = useState<ShopItem[] | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
+  const [level, setLevel] = useState(1);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
   const [wearingId, setWearingId] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ export default function ShopPage() {
       .then(([itemsRes, balanceRes]) => {
         setItems(itemsRes.items);
         setBalance(balanceRes.balance);
+        setLevel(balanceRes.level);
       })
       .catch((err) => toast(errorMessage(err, 'Дэлгүүрийг ачаалж чадсангүй'), 'error'));
   }, [user, toast]);
@@ -105,6 +107,7 @@ export default function ShopPage() {
           <div className="mt-8 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
             {items.map((item) => {
               const canAfford = (balance ?? 0) >= item.price;
+              const locked = !item.owned && level < item.minLevel;
               return (
                 <Card key={item.id} className="flex flex-col items-center text-center">
                   <img
@@ -113,6 +116,11 @@ export default function ShopPage() {
                     className="h-20 w-20 rounded-full bg-paper"
                   />
                   <p className="mt-3 text-sm font-bold text-ink">{item.name}</p>
+                  {item.minLevel > 1 && (
+                    <span className="mt-1 rounded-full bg-violet/10 px-2 py-0.5 text-[11px] font-semibold text-violet">
+                      Lvl {item.minLevel}
+                    </span>
+                  )}
                   <p className="mt-2 text-lg font-extrabold text-violet">{item.price} оноо</p>
                   {item.owned ? (
                     <Button
@@ -129,12 +137,14 @@ export default function ShopPage() {
                       variant="primary"
                       block
                       className="mt-3"
-                      disabled={purchasingId === item.id || !canAfford}
+                      disabled={purchasingId === item.id || !canAfford || locked}
                       onClick={() => handlePurchase(item)}
                     >
                       {purchasingId === item.id
                         ? 'Түр хүлээнэ үү...'
-                        : canAfford
+                        : locked
+                          ? `🔒 Lvl ${item.minLevel}-д нээгдэнэ`
+                          : canAfford
                           ? 'Худалдаж авах'
                           : 'Оноо хүрэхгүй'}
                     </Button>

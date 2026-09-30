@@ -142,7 +142,7 @@ export const notifications = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
-},
+  },
   (table) => [uniqueIndex('notifications_user_dedupe_idx').on(table.userId, table.dedupeKey)],
 );
 
@@ -388,6 +388,9 @@ export const pointTransactionType = [
   'daily_streak',
   'shop_purchase',
   'admin_adjustment',
+  'assignment_completed',
+  'first_note',
+  'first_quiz',
 ] as const;
 
 export type PointTransactionType = (typeof pointTransactionType)[number];
@@ -400,6 +403,9 @@ export const pointTransactions = pgTable('point_transactions', {
   // Positive for earned points, negative for spent points — the ledger is
   // the source of truth; users.pointsBalance is a derived cache of SUM(amount).
   amount: integer('amount').notNull(),
+  // XP granted by this transaction. Independent of coins: spending coins
+  // grants none, and some events (first note, ...) grant XP but no coins.
+  xp: integer('xp').notNull().default(0),
   type: text('type', { enum: pointTransactionType }).notNull(),
   // Free-form pointer to the thing that caused this transaction: a game
   // session id for placements, a shop item id for purchases, etc.
@@ -485,6 +491,8 @@ export const shopItems = pgTable(
     category: text('category', { enum: shopItemCategory }).notNull(),
     value: text('value').notNull(),
     price: integer('price').notNull(),
+    // Player level needed before this can be bought (1 = always available).
+    minLevel: integer('min_level').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

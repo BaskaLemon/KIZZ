@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from '@/lib/auth/session';
 import {
   AlreadyOwnedError,
   InsufficientBalanceError,
+  LevelTooLowError,
   ItemNotFoundError,
   purchaseItem,
 } from '@/lib/points/shop';
@@ -28,6 +29,9 @@ export async function POST(request: Request) {
     }
     if (err instanceof AlreadyOwnedError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
+    }
+    if (err instanceof LevelTooLowError) {
+      return NextResponse.json({ error: err.message }, { status: 403 });
     }
     if (err instanceof InsufficientBalanceError) {
       return NextResponse.json({ error: err.message }, { status: 402 });

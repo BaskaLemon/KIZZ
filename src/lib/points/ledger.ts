@@ -1,6 +1,13 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, gt, lte, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { pointTransactions, users, type PointTransactionType } from '@/db/schema';
+import {
+  notifications,
+  pointTransactions,
+  shopItems,
+  users,
+  type PointTransactionType,
+} from '@/db/schema';
+import { levelForXp } from './level';
 
 // The callback type `db.transaction()` passes in — derived from getDb()'s own
 // return type instead of importing drizzle-orm's internal transaction type,
@@ -9,8 +16,10 @@ export type Tx = Parameters<Parameters<ReturnType<typeof getDb>['transaction']>[
 
 export interface RecordTransactionInput {
   userId: string;
-  /** Positive to award points, negative to spend them. */
+  /** Coins: positive to award, negative to spend. */
   amount: number;
+  /** XP to grant (lifetime progress). Independent of coins; default 0. */
+  xp?: number;
   type: PointTransactionType;
   referenceId?: string;
   description?: string;
@@ -27,9 +36,9 @@ export async function recordTransaction(
   input: RecordTransactionInput,
 ): Promise<{ balance: number; xp: number }> {
   // Coins (pointsBalance) move with every transaction, spent or earned. XP is
-  // a lifetime progress counter — it only ever goes up, so purchases (negative
-  // amounts) don't touch it.
-  const xpGain = Math.max(input.amount, 0);
+  // a separate lifetime progress counter — it only ever goes up, and only by
+  // what the caller says the event is worth.
+  const xpGain = Math.max(input.xp ?? 0, 0);
 
   const [updated] = await tx
     .update(users)
@@ -47,10 +56,35 @@ export async function recordTransaction(
   await tx.insert(pointTransactions).values({
     userId: input.userId,
     amount: input.amount,
+    xp: xpGain,
     type: input.type,
     referenceId: input.referenceId,
     description: input.description,
   });
+
+  // Crossing a level boundary: tell the player, and what it unlocked.
+  if (xpGain > 0) {
+    const before = levelForXp(updated.xp - xpGain).level;
+    const after = levelForXp(updated.xp).level;
+    if (after > before) {
+      const unlocked = await tx
+        .select({ name: shopItems.name })
+        .from(shopItems)
+        .where(and(gt(shopItems.minLevel, before), lte(shopItems.minLevel, after)));
+      await tx
+        .insert(notifications)
+        .values({
+          userId: input.userId,
+          title: `🎉 ${after}-р түвшин боллоо!`,
+          body: unlocked.length
+            ? `Шинэ аватар нээгдлээ: ${unlocked.map((u) => u.name.replace(/ аватар$/, '')).join(', ')}`
+            : 'Цааш үргэлжлүүлээрэй!',
+          href: unlocked.length ? '/shop' : '/profile',
+          dedupeKey: `level:${after}`,
+        })
+        .onConflictDoNothing();
+    }
+  }
 
   return { balance: updated.pointsBalance, xp: updated.xp };
 }

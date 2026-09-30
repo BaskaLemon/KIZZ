@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { shopItems, userInventory, users, type ShopItemRow } from '@/db/schema';
 import { recordTransaction } from './ledger';
+import { levelForXp } from './level';
 
 export interface ShopItemWithOwnership extends ShopItemRow {
   owned: boolean;
@@ -30,6 +31,7 @@ export async function listInventory(userId: string): Promise<ShopItemRow[]> {
       category: shopItems.category,
       value: shopItems.value,
       price: shopItems.price,
+      minLevel: shopItems.minLevel,
       createdAt: shopItems.createdAt,
     })
     .from(userInventory)
@@ -45,6 +47,11 @@ export class ItemNotFoundError extends Error {
 export class AlreadyOwnedError extends Error {
   constructor() {
     super('Та энэ барааг аль хэдийн худалдаж авсан байна.');
+  }
+}
+export class LevelTooLowError extends Error {
+  constructor(public minLevel: number) {
+    super(`Энэ бараа ${minLevel}-р түвшинд нээгдэнэ.`);
   }
 }
 export class InsufficientBalanceError extends Error {
@@ -73,6 +80,9 @@ export async function purchaseItem(userId: string, itemId: string): Promise<Purc
     // Lock the user's row so two concurrent purchases can't both read the
     // same "before" balance and overspend it.
     const [user] = await tx.select().from(users).where(eq(users.id, userId)).for('update');
+    if (user && levelForXp(user.xp).level < item.minLevel) {
+      throw new LevelTooLowError(item.minLevel);
+    }
     if (!user || user.pointsBalance < item.price) {
       throw new InsufficientBalanceError();
     }

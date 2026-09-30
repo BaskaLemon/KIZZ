@@ -76,6 +76,7 @@ async function main() {
         value:
           'https://api.dicebear.com/10.x/bottts/svg?backgroundColor=ffe3ea,e3edff,e2f5e9,fdf1d4,efe6ff',
         price: 300,
+        minLevel: 3,
       },
       {
         name: 'Dylan аватар',
@@ -83,6 +84,7 @@ async function main() {
         value:
           'https://api.dicebear.com/10.x/dylan/svg?facialHairProbability=0',
         price: 300,
+        minLevel: 3,
       },
       {
         name: 'Lorelei аватар',
@@ -90,6 +92,7 @@ async function main() {
         value:
           'https://api.dicebear.com/10.x/lorelei/svg?backgroundColor=ffe3ea,e3edff,e2f5e9,fdf1d4,efe6ff',
         price: 300,
+        minLevel: 3,
       },
       {
         name: 'Pixel art аватар',
@@ -97,6 +100,7 @@ async function main() {
         value:
           'https://api.dicebear.com/10.x/pixel-art/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9',
         price: 300,
+        minLevel: 3,
       },
       {
         name: 'Toon Heads аватар',
@@ -104,6 +108,7 @@ async function main() {
         value:
           'https://api.dicebear.com/10.x/toon-head/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9',
         price: 300,
+        minLevel: 5,
       },
       {
         name: 'Notionists аватар',
@@ -111,6 +116,7 @@ async function main() {
         value:
           'https://api.dicebear.com/10.x/notionists/svg?backgroundColor=ffe3ea,e3edff,e2f5e9,fdf1d4,efe6ff',
         price: 300,
+        minLevel: 5,
       },
       {
         name: 'Micah аватар',
@@ -118,6 +124,7 @@ async function main() {
         value:
           'https://api.dicebear.com/10.x/micah/svg?backgroundColor=ffe3ea,e3edff,e2f5e9,fdf1d4,efe6ff',
         price: 300,
+        minLevel: 5,
       },
       {
         name: 'Croodles аватар',
@@ -125,6 +132,7 @@ async function main() {
         value:
           'https://api.dicebear.com/10.x/croodles/svg?backgroundColor=ffe3ea,e3edff,e2f5e9,fdf1d4,efe6ff',
         price: 300,
+        minLevel: 5,
       },
     ])
     .onConflictDoNothing();

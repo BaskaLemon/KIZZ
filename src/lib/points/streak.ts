@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { dailyStreaks, streakConfig, type StreakConfigRow } from '@/db/schema';
 import { recordTransaction, type Tx } from './ledger';
+import { STREAK_XP, todayUb } from './rules';
 
 const DEFAULT_CONFIG: StreakConfigRow = {
   id: 1,
@@ -10,9 +11,9 @@ const DEFAULT_CONFIG: StreakConfigRow = {
   maxPoints: null,
 };
 
-function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+// The app's "today" is Ulaanbaatar's calendar day, not UTC's — otherwise the
+// day would roll over at 08:00 local time.
+const todayUtc = todayUb;
 
 /** Whether `dateStr` (YYYY-MM-DD) is the calendar day right before `today`. */
 function isDayBefore(dateStr: string, today: string): boolean {
@@ -126,6 +127,7 @@ export async function claimDailyStreak(userId: string): Promise<ClaimResult> {
     const { balance } = await recordTransaction(tx, {
       userId,
       amount: pointsAwarded,
+      xp: STREAK_XP,
       type: 'daily_streak',
       description: `${nextDay}-р өдрийн дараалсан урамшуулал`,
     });

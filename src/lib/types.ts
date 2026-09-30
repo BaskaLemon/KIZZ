@@ -31,6 +31,8 @@ export interface Note {
   /** Resolved display name for updatedBy — populated by class-note routes,
    * which already have the class roster on hand. */
   updatedByName?: string;
+  /** Only on the response that created the note: XP granted for it. */
+  reward?: { xp: number };
 }
 
 export interface Question {
@@ -52,6 +54,8 @@ export interface Quiz {
   questions: Question[];
   generatedBy: 'ai' | 'rule-based';
   createdAt: string;
+  /** Only on the response that created the quiz: XP granted for it. */
+  reward?: { xp: number };
 }
 
 export interface GameSession {
@@ -84,6 +88,8 @@ export interface GameState {
   myAnswer: number | null;
   /** How many players have answered the current question. */
   answeredCount: number;
+  /** Once finished: what the caller earned from this game. */
+  myReward: { rank: number | null; coins: number; xp: number } | null;
   players: {
     id: string;
     /** The account behind this player — used to derive a default avatar. */
@@ -228,6 +234,8 @@ export interface Submission {
 }
 
 export interface SubmitResult {
+  /** XP/coins granted for this (first) completion, if any. */
+  reward?: { coins: number; xp: number };
   /** Null for a quiz-less assignment — nothing to auto-score. */
   score: number | null;
   correctCount: number | null;
@@ -243,6 +251,8 @@ export interface ShopItem {
   category: ShopItemCategory;
   value: string;
   price: number;
+  /** Player level needed to buy it. */
+  minLevel: number;
   createdAt: string;
   owned: boolean;
 }

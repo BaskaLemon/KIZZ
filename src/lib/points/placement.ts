@@ -1,7 +1,14 @@
-import { inArray } from 'drizzle-orm';
+import { and, eq, gte, inArray, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { gameResults, placementRewards } from '@/db/schema';
-import { recordTransaction } from './ledger';
+import { gameResults, placementRewards, pointTransactions } from '@/db/schema';
+import { recordTransaction, type Tx } from './ledger';
+import {
+  DAILY_GAME_COIN_CAP,
+  GAME_XP_BY_RANK,
+  GAME_XP_PARTICIPATION,
+  MIN_PLAYERS_FOR_REWARDS,
+  startOfTodayUb,
+} from './rules';
 
 export interface PlacementInput {
   userId: string;
@@ -25,10 +32,29 @@ async function loadRewardTable(ranks: number[]): Promise<Map<number, number>> {
   return new Map(rows.map((row) => [row.rank, row.points]));
 }
 
+/** Coins this user already earned from game placements today (Ulaanbaatar). */
+async function coinsEarnedToday(tx: Tx, userId: string): Promise<number> {
+  const [row] = await tx
+    .select({ total: sql<number>`coalesce(sum(${pointTransactions.amount}), 0)::int` })
+    .from(pointTransactions)
+    .where(
+      and(
+        eq(pointTransactions.userId, userId),
+        eq(pointTransactions.type, 'quiz_placement'),
+        gte(pointTransactions.createdAt, startOfTodayUb()),
+      ),
+    );
+  return row?.total ?? 0;
+}
+
 /**
- * Records final standings for one finished game/quiz session and pays out
- * points for every participant in a single transaction. `results` need not
- * be pre-sorted; each entry's own `rank` decides its reward.
+ * Records final standings for one finished game and pays out. To keep
+ * placements from being farmed:
+ *  - fewer than MIN_PLAYERS_FOR_REWARDS players -> nobody earns anything;
+ *  - a player who never scored earns nothing;
+ *  - coins from placements are capped per player per day (XP is not).
+ * `results` need not be pre-sorted; each entry's own `rank` decides its
+ * reward. The result row is always recorded, with the coins actually paid.
  */
 export async function awardPlacementPoints(
   gameSessionId: string,
@@ -38,30 +64,41 @@ export async function awardPlacementPoints(
 
   const rewardTable = await loadRewardTable(results.map((r) => r.rank));
   const fallbackPoints = rewardTable.get(FALLBACK_RANK) ?? 0;
+  const eligibleGame = results.length >= MIN_PLAYERS_FOR_REWARDS;
 
   return getDb().transaction(async (tx) => {
     const payouts: PlacementResult[] = [];
 
     for (const result of results) {
-      const pointsAwarded = rewardTable.get(result.rank) ?? fallbackPoints;
+      let coins = 0;
+      let xp = 0;
+      if (eligibleGame && result.score > 0) {
+        const reward = rewardTable.get(result.rank) ?? fallbackPoints;
+        const room = Math.max(0, DAILY_GAME_COIN_CAP - (await coinsEarnedToday(tx, result.userId)));
+        coins = Math.min(reward, room);
+        xp = GAME_XP_BY_RANK[result.rank] ?? GAME_XP_PARTICIPATION;
+      }
 
       await tx.insert(gameResults).values({
         gameSessionId,
         userId: result.userId,
         rank: result.rank,
         score: result.score,
-        awardedPoints: pointsAwarded,
+        awardedPoints: coins,
       });
 
-      await recordTransaction(tx, {
-        userId: result.userId,
-        amount: pointsAwarded,
-        type: 'quiz_placement',
-        referenceId: gameSessionId,
-        description: `${result.rank}-р байр`,
-      });
+      if (coins > 0 || xp > 0) {
+        await recordTransaction(tx, {
+          userId: result.userId,
+          amount: coins,
+          xp,
+          type: 'quiz_placement',
+          referenceId: gameSessionId,
+          description: `${result.rank}-р байр`,
+        });
+      }
 
-      payouts.push({ ...result, pointsAwarded });
+      payouts.push({ ...result, pointsAwarded: coins });
     }
 
     return payouts;
