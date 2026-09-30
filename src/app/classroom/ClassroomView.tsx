@@ -35,10 +35,7 @@ export default function ClassroomView() {
       <Shell activePath="/classroom">
         <View narrow>
           <EmptyState title="Эхлээд нэвтэрнэ үү">
-            <p>
-              Бүлгүүд ашиглахын тулд бүртгэл хийх
-              шаардлагатай.
-            </p>
+            <p>Бүлгүүд ашиглахын тулд нэвтрэх шаардлагатай.</p>
             <LinkButton href="/login" variant="primary" className="mt-4">
               Нэвтрэх / Бүртгүүлэх →
             </LinkButton>

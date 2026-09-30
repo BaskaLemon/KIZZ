@@ -42,9 +42,7 @@ export default function NotesPage() {
       <Shell activePath="/notes">
         <View narrow>
           <EmptyState title="Эхлээд нэвтэрнэ үү">
-            <p>
-              Тэмдэглэлээ хадгалахын тулд нэвтэрнэ үү.
-            </p>
+            <p>Тэмдэглэл ашиглахын тулд нэвтрэх шаардлагатай.</p>
             <LinkButton href="/login" variant="primary" className="mt-4">
               Нэвтрэх / Бүртгүүлэх →
             </LinkButton>

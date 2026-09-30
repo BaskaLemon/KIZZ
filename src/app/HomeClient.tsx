@@ -1,13 +1,15 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
   FileText,
   Gamepad2,
+  Store,
   Users,
 } from 'lucide-react';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Shell, TwoColumn, View } from '@/components/Shell';
 import { Button, Card } from '@/components/ui';
 import { StreakCard } from '@/components/StreakCard';
@@ -36,6 +38,13 @@ const ACTIONS = [
     title: 'Бүлгүүд',
     text: 'Найз, багийнхантайгаа хамт суралцах',
     bg: 'bg-answer-4',
+  },
+  {
+    href: '/shop',
+    icon: Store,
+    title: 'Дэлгүүр',
+    text: 'Kizz Coin-оороо шинэ аватар авч, өмс',
+    bg: 'bg-answer-2',
   },
 ];
 
@@ -129,7 +138,23 @@ function Dashboard() {
 export default function HomeClient({ landing }: { landing: ReactNode }) {
   const { user } = useAuth();
 
+  // Tells global.css hydration is done, so it stops masking the landing.
+  useEffect(() => {
+    document.documentElement.dataset.ready = '1';
+  }, []);
+
   return (
-    <Shell activePath="/">{user ? <Dashboard /> : landing}</Shell>
+    <Shell activePath="/">
+      {user ? (
+        <Dashboard />
+      ) : (
+        <>
+          <div className="landing-wrap">{landing}</div>
+          <div className="auth-splash">
+            <LoadingScreen />
+          </div>
+        </>
+      )}
+    </Shell>
   );
 }
