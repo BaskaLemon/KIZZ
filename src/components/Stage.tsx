@@ -178,3 +178,68 @@ export function PlayerGrid({ players }: { players: { id: string; name: string; a
     </div>
   );
 }
+
+const PODIUM = {
+  1: { height: 'h-32', tone: 'bg-amber', medal: '🥇' },
+  2: { height: 'h-24', tone: 'bg-ink-soft', medal: '🥈' },
+  3: { height: 'h-20', tone: 'bg-[#b45309]', medal: '🥉' },
+} as const;
+
+/** Top three of a finished game on a podium (2nd, 1st, 3rd from the left). */
+export function Podium({ rows }: { rows: LeaderboardRow[] }) {
+  const top = rows.slice(0, 3);
+  if (top.length === 0) return null;
+  const arranged = [top[1], top[0], top[2]].filter((r): r is LeaderboardRow => !!r);
+  return (
+    <div className="flex w-full max-w-155 items-end justify-center gap-3" aria-label="Тэргүүлэгчид">
+      {arranged.map((p) => {
+        const style = PODIUM[p.rank as 1 | 2 | 3];
+        return (
+          <div key={p.id} className="flex w-28 flex-col items-center max-sm:w-24">
+            <span className="text-2xl" aria-hidden>{style.medal}</span>
+            <Avatar
+              src={p.avatar}
+              name={p.name}
+              className={cx('rounded-full border-4 border-paper-raised shadow-md', p.rank === 1 ? 'h-20 w-20' : 'h-14 w-14')}
+            />
+            <p className="mt-1.5 w-full truncate text-center text-sm font-bold text-ink">{p.name}</p>
+            <p className="font-display text-amber">{p.score}</p>
+            <div
+              className={cx(
+                'mt-2 flex w-full items-start justify-center rounded-t-lg pt-2 font-display text-3xl text-white',
+                style.height,
+                style.tone,
+              )}
+            >
+              {p.rank}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const CONFETTI_COLORS = ['#2563eb', '#ea580c', '#db2777', '#16a34a', '#f59e0b'];
+
+/** A burst of falling confetti (CSS only; off for reduced-motion). */
+export function Confetti() {
+  return (
+    <div aria-hidden className="confetti pointer-events-none fixed inset-0 z-[60] overflow-hidden">
+      {Array.from({ length: 36 }, (_, i) => (
+        <span
+          key={i}
+          className="confetti-piece"
+          style={{
+            left: `${(i * 37) % 100}%`,
+            background: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+            animationDelay: `${(i % 9) * 0.18}s`,
+            animationDuration: `${2.8 + (i % 5) * 0.5}s`,
+            width: `${6 + (i % 3) * 3}px`,
+            height: `${10 + (i % 4) * 3}px`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}

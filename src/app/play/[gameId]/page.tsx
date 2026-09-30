@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import {
   AnswerGrid,
   AnswerOption,
+  Confetti,
   Leaderboard,
   PlayerGrid,
+  Podium,
   RoomCodeCard,
   StageHeader,
   StageScreen,
@@ -298,7 +300,9 @@ export default function PlayGamePage({
 
       {state.status === 'finished' && (
         <div className="flex w-full max-w-155 flex-col items-center gap-6">
+          {state.myReward?.rank && state.myReward.rank <= 3 && <Confetti />}
           <p className="font-display text-3xl">Тоглоом дууслаа!</p>
+          <Podium rows={toLeaderboard(state)} />
           {state.myReward && <RewardCard state={state} reward={state.myReward} />}
           {state.isHost && state.players.length < MIN_PLAYERS_FOR_REWARDS && (
             <p className="text-center text-sm text-ink-soft">

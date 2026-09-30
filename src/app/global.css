@@ -187,3 +187,39 @@ html[data-auth='1']:not([data-ready]) .landing-wrap {
 html[data-auth='1']:not([data-ready]) .auth-splash {
   display: block;
 }
+
+/* Visible keyboard focus everywhere (mouse clicks don't trigger it). */
+:focus-visible {
+  outline: 2px solid var(--color-violet);
+  outline-offset: 2px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-offset: 0;
+}
+
+/* Confetti burst on the game's finish screen. */
+@keyframes confetti-fall {
+  from {
+    transform: translateY(-12vh) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(108vh) rotate(720deg);
+    opacity: 0.85;
+  }
+}
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  border-radius: 2px;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    display: none;
+  }
+}
