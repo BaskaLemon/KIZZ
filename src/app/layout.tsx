@@ -1,20 +1,15 @@
 import type { Metadata } from 'next';
-import { Fredoka, Inter } from 'next/font/google';
+import { Nunito } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import './global.css';
 import { AuthProvider } from '@/lib/auth';
 import { ToastProvider } from '@/lib/toast';
 
-const fredoka = Fredoka({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-fredoka',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-inter',
+// One rounded, friendly family for headings and body. `cyrillic` matters:
+// without it Mongolian text silently falls back to the system font.
+const nunito = Nunito({
+  subsets: ['latin', 'cyrillic'],
+  variable: '--font-nunito',
 });
 
 export const metadata: Metadata = {
@@ -34,9 +29,20 @@ export default function RootLayout({
   return (
     <html
       lang="mn"
-      className={`${fredoka.variable} ${inter.variable}`}
+      className={nunito.variable}
       suppressHydrationWarning
     >
+      <head>
+        {/* Runs before first paint: if a session token exists, flag <html> so
+            the server-rendered signed-out landing is swapped for the loading
+            coin until React hydrates (see global.css). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('studyjam.token'))document.documentElement.dataset.auth='1'}catch(e){}",
+          }}
+        />
+      </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthProvider>

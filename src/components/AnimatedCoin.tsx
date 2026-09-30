@@ -23,8 +23,8 @@ export function AnimatedCoin({ value }: { value: number }) {
       }`}
     >
       <img
-        src="/buzz-coin.jpeg"
-        alt="Buzz Coin"
+        src="/kizz-coin.jpeg"
+        alt="Kizz Coin"
         className={`h-5 w-5 rounded-full ${pulse ? 'animate-bounce' : ''}`}
       />
       {display}

@@ -30,8 +30,8 @@
   --color-answer-3: #db2777;
   --color-answer-4: #16a34a;
 
-  --font-display: var(--font-fredoka), system-ui, sans-serif;
-  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-nunito), system-ui, sans-serif;
+  --font-body: var(--font-nunito), system-ui, sans-serif;
 }
 
 .dark {
@@ -144,33 +144,35 @@ select {
   animation: pop-in 0.25s ease;
 }
 
-.shape-triangle {
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-}
-.shape-diamond {
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-}
-.shape-circle {
-  border-radius: 50%;
-}
-.shape-square {
-  border-radius: 5px;
-}
-
-/* Loading coin: flips around its vertical axis. */
+/* Loading coin: a 3D disc spinning around its vertical axis, slightly
+   tilted so its thickness reads. */
 @keyframes coin-spin {
   from {
-    transform: perspective(600px) rotateY(0deg);
+    transform: rotateX(-14deg) rotateY(0deg);
   }
   to {
-    transform: perspective(600px) rotateY(360deg);
+    transform: rotateX(-14deg) rotateY(360deg);
   }
 }
-.coin-spin {
-  animation: coin-spin 1.4s linear infinite;
+.coin3d {
+  transform-style: preserve-3d;
+  transform: rotateX(-14deg) rotateY(25deg);
+  animation: coin-spin 1.8s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .coin-spin {
+  .coin3d {
     animation: none;
   }
+}
+
+/* Signed-in visitors: hide the SSR landing and show the loading coin until
+   hydration (data-ready is set by HomeClient). */
+.auth-splash {
+  display: none;
+}
+html[data-auth='1']:not([data-ready]) .landing-wrap {
+  display: none;
+}
+html[data-auth='1']:not([data-ready]) .auth-splash {
+  display: block;
 }

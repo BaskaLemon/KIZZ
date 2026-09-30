@@ -44,7 +44,7 @@ export function StreakCard() {
             }
           : prev,
       );
-      toast(`+${result.pointsAwarded} Buzz Coin авлаа! 🔥 ${result.streakDay}-р өдөр`);
+      toast(`+${result.pointsAwarded} Kizz Coin авлаа! 🔥 ${result.streakDay}-р өдөр`);
     } catch (err) {
       toast(errorMessage(err, 'Урамшуулал авахад алдаа гарлаа'), 'error');
     } finally {
@@ -104,7 +104,7 @@ export function StreakCard() {
           : claiming
             ? 'Авч байна...'
             : status.canClaimToday
-              ? `Урамшуулал авах (+${status.nextRewardPoints} Buzz Coin)`
+              ? `Урамшуулал авах (+${status.nextRewardPoints} Kizz Coin)`
               : 'Өнөөдөр аль хэдийн авсан ✓'}
       </Button>
     </Card>
