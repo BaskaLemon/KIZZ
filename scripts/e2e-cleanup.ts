@@ -22,7 +22,6 @@ await sql.begin(async (tx) => {
   await del('class_members', tx`delete from class_members where student_id = any(${users}) or class_id = any(${classes})`);
   await del('class_co_teachers', tx`delete from class_co_teachers where teacher_id = any(${users}) or class_id = any(${classes})`);
   await del('classes', tx`delete from classes where id = any(${classes})`);
-  await del('class_groups', tx`delete from class_groups where teacher_id = any(${users})`);
   await del('users', tx`delete from users where id = any(${users})`);
 });
 await sql.end();

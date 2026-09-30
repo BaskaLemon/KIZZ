@@ -3,7 +3,7 @@
 Сурсан зүйлээ сорил болгоод, тоглоод бэхжүүл. Хэн ч (сурагч, оюутан, ажилтан, өөрөө суралцагч) ашиглаж болно.
 
 - **Хувийн тэмдэглэл** бичиж, PDF/зураг хавсаргана. Зөвхөн эзэнд харагдана.
-- **Quiz** үүсгэнэ: тэмдэглэлээс AI (Gemini) эсвэл дүрэмт аргаар, 3–20 асуулт.
+- **Quiz** үүсгэнэ: тэмдэглэлээс AI (Gemini)-аар, 3–20 асуулт.
 - **Шууд тоглоом**: өрөөний код, таймер, онооны самбар. Хугацаа дуусах эсвэл бүгд хариулахад хариу автоматаар харагдана.
 - **Бүлэг**: найз, баг, гэр бүл, ангийнхаа хүмүүстэй. Хэн ч үүсгэнэ, кодоор нэгдэнэ. Үүсгэсэн хүн админ (хамран админ томилж болно): хамтын тэмдэглэл, даалгавар, материал, дүн.
 - Мэдэгдэл, streak, coin, дэлгүүр, аватар.
@@ -20,7 +20,7 @@ bun run db:seed                    # shop, streak, оноо олгох тохи�
 bun run dev
 ```
 
-`AUTH_SECRET`: `openssl rand -base64 32`. `GEMINI_API_KEY` байхгүй бол quiz-ийн AI горим унтарч, дүрэмт горим л ажиллана
+`AUTH_SECRET`: `openssl rand -base64 32`. `GEMINI_API_KEY` байхгүй бол quiz үүсгэх боломжгүй (бусад бүх зүйл ажиллана)
 ([Google AI Studio](https://aistudio.google.com/apikey)-оос авна).
 
 ## Scripts
@@ -40,7 +40,7 @@ bun run dev
 ## Deploy (Vercel + Supabase/Postgres)
 
 1. Postgres үүсгээд connection string авна (Supabase бол transaction pooler; `prepare: false` тохируулагдсан).
-2. Vercel дээр env: `DATABASE_URL`, `AUTH_SECRET`, заавал биш `GEMINI_API_KEY`.
+2. Vercel дээр env: `DATABASE_URL`, `AUTH_SECRET`, `GEMINI_API_KEY` (quiz үүсгэхэд).
 3. Локалаас production DB рүү нэг удаа `bun run db:migrate && bun run db:seed`. Шинэ хувилбар бүрийн өмнө `db:migrate` дахин ажиллуулна.
 4. Deploy (`bun run build`).
 
