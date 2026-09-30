@@ -58,7 +58,7 @@ export function StreakCard() {
     <Card>
       <div className="flex items-center justify-between">
         <span className="rounded-full bg-violet px-3 py-1 text-xs font-bold text-white">
-          Lvl {balance ? balance.level : '—'}
+          {balance ? balance.level : '—'}-р түвшин
         </span>
         <span className="text-sm font-bold text-ink">
           {balance ? <AnimatedCoin value={balance.balance} /> : '—'}

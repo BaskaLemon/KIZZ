@@ -118,7 +118,7 @@ export default function ShopPage() {
                   <p className="mt-3 text-sm font-bold text-ink">{item.name}</p>
                   {item.minLevel > 1 && (
                     <span className="mt-1 rounded-full bg-violet/10 px-2 py-0.5 text-[11px] font-semibold text-violet">
-                      Lvl {item.minLevel}
+                      {item.minLevel}-р түвшин
                     </span>
                   )}
                   <p className="mt-2 text-lg font-extrabold text-violet">{item.price} оноо</p>
@@ -143,7 +143,7 @@ export default function ShopPage() {
                       {purchasingId === item.id
                         ? 'Түр хүлээнэ үү...'
                         : locked
-                          ? `🔒 Lvl ${item.minLevel}-д нээгдэнэ`
+                          ? `🔒 ${item.minLevel}-р түвшинд нээгдэнэ`
                           : canAfford
                           ? 'Худалдаж авах'
                           : 'Оноо хүрэхгүй'}

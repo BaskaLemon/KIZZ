@@ -15,7 +15,7 @@ import { Button, Card } from '@/components/ui';
 import { StreakCard } from '@/components/StreakCard';
 import { useAuth } from '@/lib/auth';
 import { useAvatar } from '@/hooks/useAvatar';
-import { useMyStats } from '@/hooks/useMyStats';
+import { useMyStats, type MyStats } from '@/hooks/useMyStats';
 
 const ACTIONS = [
   {
@@ -47,6 +47,63 @@ const ACTIONS = [
     bg: 'bg-answer-2',
   },
 ];
+
+/** First-run checklist: disappears once every step is done. */
+function GettingStarted({ stats }: { stats: MyStats | null }) {
+  if (!stats) return null;
+  const steps = [
+    { done: stats.notes > 0, label: 'Тэмдэглэл бичих', href: '/notes' },
+    { done: stats.quizzes > 0, label: 'Тэмдэглэлээсээ quiz үүсгэх', href: '/notes' },
+    { done: stats.groups > 0, label: 'Найзтайгаа бүлэг үүсгэх эсвэл нэгдэх', href: '/classroom' },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+  if (doneCount === steps.length) return null;
+  return (
+    <Card className="mt-6 max-w-3xl rounded-2xl">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-bold text-ink">Эхлэх алхмууд</h2>
+        <span className="text-sm font-semibold text-ink-soft">
+          {doneCount} / {steps.length}
+        </span>
+      </div>
+      <div
+        className="mt-2 h-2 overflow-hidden rounded-full bg-ink/10"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={steps.length}
+        aria-valuenow={doneCount}
+      >
+        <div
+          className="h-full rounded-full bg-mint transition-all"
+          style={{ width: `${(doneCount / steps.length) * 100}%` }}
+        />
+      </div>
+      <ul className="mt-4 flex flex-col gap-2">
+        {steps.map((step) => (
+          <li key={step.label}>
+            <Link
+              href={step.href}
+              className="flex items-center gap-3 rounded-xl px-2 py-2 text-[15px] font-medium text-ink no-underline hover:bg-ink/5"
+            >
+              <span
+                aria-hidden
+                className={
+                  step.done
+                    ? 'flex h-6 w-6 items-center justify-center rounded-full bg-mint text-xs font-bold text-white'
+                    : 'h-6 w-6 rounded-full border-2 border-line'
+                }
+              >
+                {step.done ? '✓' : ''}
+              </span>
+              <span className={step.done ? 'text-ink-soft line-through' : ''}>{step.label}</span>
+              {!step.done && <ArrowRight size={15} className="ml-auto text-ink-soft" />}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
 
 function Dashboard() {
   const { user, logout } = useAuth();
@@ -83,6 +140,8 @@ function Dashboard() {
               </Card>
             ))}
           </div>
+
+          <GettingStarted stats={stats} />
 
           <div className="mt-6 grid max-w-3xl grid-cols-1 gap-5 sm:grid-cols-2">
             {ACTIONS.map((a) => {

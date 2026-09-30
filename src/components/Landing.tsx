@@ -39,7 +39,7 @@ const STEPS = [
   {
     icon: Gamepad2,
     title: '3. Тогло',
-    text: 'Найзуудтайгаа кодоор шууд тоглоод өрсөлд. Оноо, streak цуглуулж дэлгүүрээс авалцаарай.',
+    text: 'Найзуудтайгаа кодоор шууд тоглоод өрсөлд. Оноо, дараалсан өдрийн урамшуулал цуглуулж, дэлгүүрээс аватар авч өмс.',
     bg: 'bg-answer-3',
   },
 ];
@@ -129,6 +129,15 @@ export function Landing() {
           харах боломжтой.
         </p>
       </section>
+      <footer className="mt-12 flex max-w-3xl flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-5 text-[13px] text-ink-soft">
+        <span>© KIZZ</span>
+        <Link href="/terms" className="hover:text-ink hover:underline">
+          Үйлчилгээний нөхцөл
+        </Link>
+        <Link href="/privacy" className="hover:text-ink hover:underline">
+          Нууцлалын бодлого
+        </Link>
+      </footer>
     </View>
   );
 }
