@@ -127,6 +127,13 @@
       "when": 1790775574700,
       "tag": "0017_notification_dismissed",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790783715424,
+      "tag": "0018_community_features",
+      "breakpoints": true
     }
   ]
 }

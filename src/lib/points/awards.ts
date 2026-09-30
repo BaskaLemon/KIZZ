@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { pointTransactions, type PointTransactionType } from '@/db/schema';
+import { grantBadge } from './badges';
 import { recordTransaction } from './ledger';
 import { assignmentCoins, assignmentXp } from './rules';
 
@@ -22,6 +23,7 @@ export async function awardOnce(
         .limit(1);
       if (existing) return null;
       await recordTransaction(tx, { userId, amount: 0, xp, type, description });
+      await grantBadge(tx, userId, type); // 'first_note' / 'first_quiz' are badge keys too
       return xp;
     });
   } catch (err) {
@@ -63,6 +65,7 @@ export async function awardAssignmentCompletion(
         referenceId: assignmentId,
         description: `Даалгавар дуусгасан (${score}%)`,
       });
+      if (score >= 100) await grantBadge(tx, userId, 'perfect_score');
       return { coins, xp };
     });
   } catch (err) {

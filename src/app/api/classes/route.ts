@@ -5,6 +5,7 @@ import { classes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { generateUniqueCode } from '@/lib/codes';
 import { toClass } from '@/lib/mappers';
+import { grantBadge } from '@/lib/points/badges';
 import { isClassColorKey, randomClassColor } from '@/lib/classColor';
 import { optionalText } from '@/lib/text';
 
@@ -52,5 +53,6 @@ export async function POST(request: Request) {
     })
     .returning();
 
+  await grantBadge(db, auth.user.id, 'team_player');
   return NextResponse.json(toClass(row, auth.user.name), { status: 201 });
 }

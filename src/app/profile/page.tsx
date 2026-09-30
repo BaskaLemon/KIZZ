@@ -11,6 +11,7 @@ import { useAvatar } from '@/hooks/useAvatar';
 import { AvatarCustomizer } from '@/components/AvatarCustomizer';
 import { StreakCard } from '@/components/StreakCard';
 import { AvatarPicker } from '@/components/AvatarPicker';
+import { BadgesCard } from '@/components/BadgesCard';
 import { AccountSettings } from '@/components/AccountSettings';
 import { useMyStats } from '@/hooks/useMyStats';
 
@@ -117,6 +118,8 @@ export default function ProfilePage() {
         </div>
 
         <AvatarPicker />
+
+        <BadgesCard />
 
         <div className="mt-6 grid grid-cols-3 gap-5">
           {STATS.map((stat) => (

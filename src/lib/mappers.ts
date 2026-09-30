@@ -49,6 +49,8 @@ export const toQuiz = (row: QuizRow): Quiz => ({
   classId: row.classId,
   sourceNoteId: row.sourceNoteId,
   ownerId: row.ownerId,
+  isPublic: row.isPublic,
+  copyCount: row.copyCount,
   title: row.title,
   questions: row.questions,
   generatedBy: row.generatedBy,

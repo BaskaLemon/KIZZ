@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -13,6 +13,9 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Shell, TwoColumn, View } from '@/components/Shell';
 import { Button, Card } from '@/components/ui';
 import { StreakCard } from '@/components/StreakCard';
+import { LeaderboardList } from '@/components/LeaderboardList';
+import { api } from '@/lib/api';
+import type { LeaderboardResponse } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { useAvatar } from '@/hooks/useAvatar';
 import { useMyStats, type MyStats } from '@/hooks/useMyStats';
@@ -105,6 +108,33 @@ function GettingStarted({ stats }: { stats: MyStats | null }) {
   );
 }
 
+/** Top five by XP with a link to the full list. */
+function LeaderboardPreview() {
+  const [data, setData] = useState<LeaderboardResponse | null>(null);
+  useEffect(() => {
+    api.getLeaderboard('global').then(setData).catch(() => setData(null));
+  }, []);
+  if (!data || data.rows.length === 0) return null;
+  return (
+    <Card>
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold text-ink">Тэргүүлэгчид</h2>
+        <Link href="/leaderboard" className="text-sm font-semibold text-violet hover:underline">
+          Бүгд →
+        </Link>
+      </div>
+      <div className="mt-3">
+        <LeaderboardList rows={data.rows.slice(0, 5)} compact />
+      </div>
+      {data.me.rank && !data.rows.slice(0, 5).some((r) => r.isMe) && (
+        <p className="mt-3 text-center text-xs text-ink-soft">
+          Таны байр: <span className="font-bold text-ink">#{data.me.rank}</span> · {data.me.xp} XP
+        </p>
+      )}
+    </Card>
+  );
+}
+
 function Dashboard() {
   const { user, logout } = useAuth();
   const { avatarUri } = useAvatar();
@@ -186,6 +216,7 @@ function Dashboard() {
             </Button>
           </Card>
           <StreakCard />
+          <LeaderboardPreview />
         </div>
       }
     />

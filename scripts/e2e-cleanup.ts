@@ -12,6 +12,8 @@ await sql.begin(async (tx) => {
   await del('game_sessions', tx`delete from game_sessions where id = any(${sessions})`);
   await del('submissions', tx`delete from submissions where student_id = any(${users}) or assignment_id in (select id from assignments where class_id = any(${classes}))`);
   await del('assignments', tx`delete from assignments where class_id = any(${classes})`);
+  await del('class_post_comments', tx`delete from class_post_comments where author_id = any(${users}) or post_id in (select id from class_posts where class_id = any(${classes}) or author_id = any(${users}))`);
+  await del('class_posts', tx`delete from class_posts where class_id = any(${classes}) or author_id = any(${users})`);
   await del('class_materials', tx`delete from class_materials where class_id = any(${classes}) or uploaded_by = any(${users})`);
   await del('quizzes', tx`delete from quizzes where owner_id = any(${users}) or class_id = any(${classes})`);
   await del('notes', tx`delete from notes where owner_id = any(${users}) or class_id = any(${classes}) or updated_by = any(${users})`);

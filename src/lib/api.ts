@@ -7,7 +7,11 @@ import type {
   BalanceInfo,
   ClaimResult,
   Class,
+  BadgeItem,
   ClassGrades,
+  ClassPost,
+  LeaderboardResponse,
+  LibraryItem,
   ClassPeople,
   GameSession,
   GameState,
@@ -124,7 +128,8 @@ export const api = {
     request<{ token: string; user: User }>('POST', '/auth/login', payload),
   logout: () => request('POST', '/auth/logout'),
   me: () => request<User>('GET', '/auth/me'),
-  updateProfile: (name: string) => request<User>('PATCH', '/me/profile', { name }),
+  updateProfile: (patch: { name?: string; showOnLeaderboard?: boolean }) =>
+    request<User>('PATCH', '/me/profile', patch),
   changePassword: (currentPassword: string, newPassword: string) =>
     request('POST', '/me/password', { currentPassword, newPassword }),
   deleteAccount: (password: string) => request('DELETE', '/me', { password }),
@@ -160,8 +165,33 @@ export const api = {
   listClassQuizzes: (classId: string) =>
     request<Quiz[]>('GET', `/classes/${classId}/quizzes`),
   deleteQuiz: (quizId: string) => request('DELETE', `/quizzes/${quizId}`),
-  updateQuiz: (quizId: string, patch: { title?: string; questions?: Question[] }) =>
+  updateQuiz: (
+    quizId: string,
+    patch: { title?: string; questions?: Question[]; isPublic?: boolean },
+  ) =>
     request<Quiz>('PATCH', `/quizzes/${quizId}`, patch),
+  // community
+  getLeaderboard: (scope: 'global' | 'class', classId?: string) =>
+    request<LeaderboardResponse>(
+      'GET',
+      `/leaderboard?scope=${scope}${classId ? `&classId=${classId}` : ''}`,
+    ),
+  getMyBadges: () => request<{ badges: BadgeItem[] }>('GET', '/me/badges'),
+  listLibrary: (q: string, sort: 'new' | 'popular') =>
+    request<{ items: LibraryItem[] }>(
+      'GET',
+      `/library?sort=${sort}${q ? `&q=${encodeURIComponent(q)}` : ''}`,
+    ),
+  copyLibraryQuiz: (quizId: string) => request<Quiz>('POST', `/library/${quizId}/copy`),
+  listPosts: (classId: string) => request<ClassPost[]>('GET', `/classes/${classId}/posts`),
+  createPost: (classId: string, body: string) =>
+    request<ClassPost[]>('POST', `/classes/${classId}/posts`, { body }),
+  pinPost: (postId: string, pinned: boolean) =>
+    request('PATCH', `/posts/${postId}`, { pinned }),
+  deletePost: (postId: string) => request('DELETE', `/posts/${postId}`),
+  addComment: (postId: string, body: string) =>
+    request('POST', `/posts/${postId}/comments`, { body }),
+  deleteComment: (commentId: string) => request('DELETE', `/comments/${commentId}`),
   getQuiz: (quizId: string) => request<Quiz>('GET', `/quizzes/${quizId}`),
 
   // live game — polling-based (no WebSocket/pub-sub service is configured

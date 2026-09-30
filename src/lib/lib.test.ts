@@ -9,6 +9,7 @@ import {
   todayUb,
 } from '@/lib/points/rules';
 import { isUuid } from '@/lib/uuid';
+import { BADGES, BADGE_BY_KEY } from '@/lib/badges';
 import { normalizeMime } from '@/lib/materials';
 import { matchesSignature } from '@/lib/fileSignature';
 import { rateLimit, resetRateLimits } from '@/lib/rateLimit';
@@ -107,5 +108,21 @@ describe('optionalText / randomCode', () => {
   });
   it('makes codes of the requested length', () => {
     expect(randomCode(5)).toHaveLength(5);
+  });
+});
+
+describe('badge catalogue', () => {
+  it('has unique keys with a name and a hint each', () => {
+    expect(new Set(BADGES.map((b) => b.key)).size).toBe(BADGES.length);
+    for (const b of BADGES) {
+      expect(b.name.length).toBeGreaterThan(0);
+      expect(b.hint.length).toBeGreaterThan(0);
+      expect(BADGE_BY_KEY.get(b.key)).toBe(b);
+    }
+  });
+  it('covers every key the server grants', () => {
+    for (const key of ['first_note', 'first_quiz', 'team_player', 'first_win', 'perfect_score', 'streak_7', 'streak_30', 'level_5', 'level_10', 'popular_author']) {
+      expect(BADGE_BY_KEY.has(key)).toBe(true);
+    }
   });
 });

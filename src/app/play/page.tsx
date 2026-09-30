@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Play, Trash2 } from 'lucide-react';
+import { Globe, Pencil, Play, Trash2 } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { LibraryPanel } from '@/components/LibraryPanel';
 import { QuizEditor } from '@/components/QuizEditor';
 import { Shell, View } from '@/components/Shell';
 import { Button, Card, EmptyState, LinkButton, TextInput } from '@/components/ui';
@@ -22,6 +23,7 @@ export default function PlayPage() {
   const [code, setCode] = useState('');
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<Quiz | null>(null);
+  const [tab, setTab] = useState<'mine' | 'library'>('mine');
   const [starting, setStarting] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
 
@@ -53,6 +55,26 @@ export default function PlayPage() {
       toast('Quiz устгагдлаа');
     } catch (err) {
       toast((err as ApiError).payload?.error || 'Устгахад алдаа гарлаа', 'error');
+    }
+  }
+
+  async function togglePublic(quiz: Quiz) {
+    const next = !quiz.isPublic;
+    if (
+      next &&
+      !(await confirm({
+        message: `"${quiz.title}" quiz-ийг нийтийн санд нийтлэх үү? Бүх хэрэглэгч үүнийг харж, хуулж авч чадна.`,
+        confirmLabel: 'Нийтлэх',
+      }))
+    ) {
+      return;
+    }
+    try {
+      const saved = await api.updateQuiz(quiz.id, { isPublic: next });
+      setQuizzes((prev) => prev.map((x) => (x.id === saved.id ? saved : x)));
+      toast(next ? 'Нийтийн санд нийтлэгдлээ' : 'Нийтийн сангаас хасагдлаа');
+    } catch (err) {
+      toast((err as ApiError).payload?.error || 'Алдаа гарлаа', 'error');
     }
   }
 
@@ -129,8 +151,32 @@ export default function PlayPage() {
             </Card>
 
             <div>
-              <h3 className="mb-2.5 text-lg">Миний Quiz-үүд</h3>
-              {quizzes.length === 0 ? (
+              <div className="mb-3 flex gap-2" role="tablist" aria-label="Quiz-ийн жагсаалт">
+                {(
+                  [
+                    ['mine', 'Миний Quiz-үүд'],
+                    ['library', 'Нийтийн сан'],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === value}
+                    onClick={() => setTab(value)}
+                    className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
+                      tab === value
+                        ? 'border-transparent bg-ink text-paper'
+                        : 'border-line bg-paper-raised text-ink hover:border-ink/30'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {tab === 'library' ? (
+                <LibraryPanel onCopied={(quiz) => setQuizzes((prev) => [quiz, ...prev])} />
+              ) : quizzes.length === 0 ? (
                 <EmptyState title="Quiz алга">
                   <p>Тэмдэглэлээсээ quiz үүсгэсний дараа энд харагдана.</p>
                   <LinkButton href="/notes" variant="primary" className="mt-4">
@@ -155,6 +201,11 @@ export default function PlayPage() {
                         <h3 className="truncate text-base">{q.title}</h3>
                         <p className="text-[13px] text-ink-soft">
                           {q.questions.length} асуулт
+                          {q.isPublic && (
+                            <span className="ml-2 rounded-full bg-mint/15 px-2 py-0.5 text-[11px] font-semibold text-mint">
+                              🌐 Нийтэд · {q.copyCount} хуулсан
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
@@ -166,6 +217,22 @@ export default function PlayPage() {
                           <Play size={15} />{' '}
                           Тоглоом эхлүүлэх
                         </Button>
+                        {q.ownerId === user.id && (
+                          <button
+                            type="button"
+                            onClick={() => togglePublic(q)}
+                            aria-label={q.isPublic ? `${q.title} нийтийн сангаас хасах` : `${q.title} нийтийн санд нийтлэх`}
+                            aria-pressed={q.isPublic}
+                            title={q.isPublic ? 'Нийтийн сангаас хасах' : 'Нийтийн санд нийтлэх'}
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+                              q.isPublic
+                                ? 'bg-mint/15 text-mint hover:bg-mint/25'
+                                : 'text-ink-soft hover:bg-ink/5 hover:text-ink'
+                            }`}
+                          >
+                            <Globe size={16} />
+                          </button>
+                        )}
                         {q.ownerId === user.id && (
                           <button
                             type="button"

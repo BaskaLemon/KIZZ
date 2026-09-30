@@ -3,6 +3,7 @@ import { Card } from '@/components/ui';
 import { CopyCodeButton } from '@/components/CopyCodeButton';
 import { classBannerClass } from '@/lib/classColor';
 import { cx } from '@/lib/cx';
+import { ClassPosts } from './ClassPosts';
 import { Upcoming } from './Upcoming';
 import type { Assignment, Class } from '@/lib/types';
 
@@ -73,6 +74,8 @@ export function ClassStream({
         </Card>
         <Upcoming assignments={assignments} isTeacher={isTeacher} />
       </div>
+
+      <ClassPosts classId={klass.id} isAdmin={isTeacher} />
     </div>
   );
 }

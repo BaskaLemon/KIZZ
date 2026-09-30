@@ -41,6 +41,8 @@ export const users = pgTable('users', {
   equippedItemId: uuid('equipped_item_id').references(
     (): AnyPgColumn => shopItems.id,
   ),
+  // Whether the user appears on the global XP leaderboard.
+  showOnLeaderboard: boolean('show_on_leaderboard').notNull().default(true),
 });
 
 export type UserRow = typeof users.$inferSelect;
@@ -168,6 +170,16 @@ export const quizzes = pgTable('quizzes', {
   title: text('title').notNull(),
   questions: jsonb('questions').notNull().$type<Question[]>(),
   generatedBy: text('generated_by', { enum: ['ai', 'rule-based'] }).notNull(),
+  // Public library: a personal quiz its owner has shared with everyone.
+  isPublic: boolean('is_public').notNull().default(false),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  // How many people copied it into their own quizzes.
+  copyCount: integer('copy_count').notNull().default(0),
+  // The public quiz this one was copied from (null if the original is gone).
+  copiedFromId: uuid('copied_from_id').references(
+    (): AnyPgColumn => quizzes.id,
+    { onDelete: 'set null' },
+  ),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -522,3 +534,58 @@ export const userInventory = pgTable(
 );
 
 export type UserInventoryRow = typeof userInventory.$inferSelect;
+
+// --- Group announcements --------------------------------------------------
+// Admins post announcements to a group; members comment on them.
+
+export const classPosts = pgTable('class_posts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  classId: uuid('class_id')
+    .notNull()
+    .references(() => classes.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id),
+  body: text('body').notNull(),
+  // A file attached to the post (from the group's materials); optional.
+  materialId: uuid('material_id').references(() => classMaterials.id),
+  pinned: boolean('pinned').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type ClassPostRow = typeof classPosts.$inferSelect;
+
+export const classPostComments = pgTable('class_post_comments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  postId: uuid('post_id')
+    .notNull()
+    .references(() => classPosts.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => users.id),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type ClassPostCommentRow = typeof classPostComments.$inferSelect;
+
+// --- Badges ---------------------------------------------------------------
+// Which badges (defined in lib/badges.ts) each user has earned.
+
+export const userBadges = pgTable(
+  'user_badges',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    badgeKey: text('badge_key').notNull(),
+    earnedAt: timestamp('earned_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.badgeKey] })],
+);

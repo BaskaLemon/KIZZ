@@ -13,6 +13,7 @@ export function toPublicUser(row: UserRow): User {
     createdAt: row.createdAt.toISOString(),
     avatarOptions: row.avatarOptions ?? null,
     equippedItemId: row.equippedItemId ?? null,
+    showOnLeaderboard: row.showOnLeaderboard,
   };
 }
 

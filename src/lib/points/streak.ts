@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { dailyStreaks, streakConfig, type StreakConfigRow } from '@/db/schema';
+import { grantBadge } from './badges';
 import { recordTransaction, type Tx } from './ledger';
 import { STREAK_XP, todayUb } from './rules';
 
@@ -131,6 +132,9 @@ export async function claimDailyStreak(userId: string): Promise<ClaimResult> {
       type: 'daily_streak',
       description: `${nextDay}-р өдрийн дараалсан урамшуулал`,
     });
+
+    if (nextDay >= 7) await grantBadge(tx, userId, 'streak_7');
+    if (nextDay >= 30) await grantBadge(tx, userId, 'streak_30');
 
     return { streakDay: nextDay, pointsAwarded, balance };
   });

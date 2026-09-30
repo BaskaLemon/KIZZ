@@ -5,6 +5,8 @@ import {
   classCoTeachers,
   classMaterials,
   classMembers,
+  classPostComments,
+  classPosts,
   classes,
   dailyStreaks,
   gameAnswers,
@@ -69,6 +71,7 @@ export async function deleteClassCascade(classId: string) {
     }
 
     // Note attachments cascade with their notes.
+    await tx.delete(classPosts).where(eq(classPosts.classId, classId)); // comments cascade
     await tx.delete(notes).where(eq(notes.classId, classId));
     await tx.delete(classMaterials).where(eq(classMaterials.classId, classId));
     await tx.delete(classMembers).where(eq(classMembers.classId, classId));
@@ -141,6 +144,11 @@ export async function deleteUserCascade(userId: string) {
     await tx.execute(sql`update notes set updated_by = c.teacher_id
       from classes c where notes.class_id = c.id and notes.updated_by = ${userId}`);
 
+    // Comments are removed; announcements written in other people's groups
+    // are handed to that group's owner.
+    await tx.delete(classPostComments).where(eq(classPostComments.authorId, userId));
+    await tx.execute(sql`update class_posts set author_id = c.teacher_id
+      from classes c where class_posts.class_id = c.id and class_posts.author_id = ${userId}`);
     await tx.delete(submissions).where(eq(submissions.studentId, userId));
     await tx.delete(classMembers).where(eq(classMembers.studentId, userId));
     await tx.delete(classCoTeachers).where(eq(classCoTeachers.teacherId, userId));

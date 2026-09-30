@@ -1,6 +1,7 @@
 import { and, eq, gte, inArray, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { gameResults, placementRewards, pointTransactions } from '@/db/schema';
+import { grantBadge } from './badges';
 import { recordTransaction, type Tx } from './ledger';
 import {
   DAILY_GAME_COIN_CAP,
@@ -97,6 +98,8 @@ export async function awardPlacementPoints(
           description: `${result.rank}-р байр`,
         });
       }
+
+      if (result.rank === 1 && xp > 0) await grantBadge(tx, result.userId, 'first_win');
 
       payouts.push({ ...result, pointsAwarded: coins });
     }

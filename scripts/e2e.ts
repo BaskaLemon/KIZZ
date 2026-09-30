@@ -334,6 +334,88 @@ r = await call(tokA, 'POST', '/games', { quizId: quiz.id }); check('host a game 
 r = await call(tokA, 'PATCH', `/quizzes/${quiz.id}`, { title: 'while live' }); check('cannot edit questions during a live game (409) — title alone is fine', r.status === 200, r);
 r = await call(tokA, 'PATCH', `/quizzes/${quiz.id}`, { questions: editQs(quiz.questions) }); check('question edit blocked while game is live (409)', r.status === 409, r);
 
+// --- leaderboard
+r = await call(tokB, 'GET', '/leaderboard'); const lbB = r.data;
+check('global leaderboard is ranked by XP', r.status === 200 && lbB.rows.length > 0 && lbB.rows.every((x: any, i: number) => i === 0 || lbB.rows[i - 1].xp >= x.xp), r.status);
+check('leaderboard reports my own standing', lbB.me.xp === (await balanceOf(tokB)).xp && lbB.me.rank >= 1, lbB.me);
+r = await call(tokB, 'GET', `/leaderboard?scope=class&classId=${klass?.id}`);
+check('group leaderboard lists the members', r.status === 200 && r.data.rows.some((x: any) => x.id === userB?.id) && r.data.rows.some((x: any) => x.id === userA?.id), r.data);
+check('group leaderboard is members-only (404)', (await call(tokC, 'GET', `/leaderboard?scope=class&classId=${klass?.id}`)).status === 404);
+check('leaderboard visibility must be a boolean (400)', (await call(tokB, 'PATCH', '/me/profile', { showOnLeaderboard: 'yes' })).status === 400);
+r = await call(tokB, 'PATCH', '/me/profile', { showOnLeaderboard: false }); check('opt out of the global leaderboard', r.status === 200 && r.data?.showOnLeaderboard === false, r.data);
+r = await call(tokC, 'GET', '/leaderboard'); check('opted-out user is hidden from the global list', !r.data.rows.some((x: any) => x.id === userB?.id), r.data.rows.map((x: any) => x.name));
+r = await call(tokB, 'GET', '/leaderboard'); check('opted-out user gets no global rank', r.data.me.rank === null, r.data.me);
+r = await call(tokA, 'GET', `/leaderboard?scope=class&classId=${klass?.id}`); check('opt-out does not hide them inside their group', r.data.rows.some((x: any) => x.id === userB?.id), r.data.rows);
+check('opt back in', (await call(tokB, 'PATCH', '/me/profile', { showOnLeaderboard: true })).data?.showOnLeaderboard === true);
+
+// --- badges
+r = await call(tokB, 'GET', '/me/badges');
+const earnedB = new Set((r.data?.badges ?? []).filter((b: any) => b.earned).map((b: any) => b.key));
+check('badge catalogue is returned', r.status === 200 && r.data.badges.length >= 10, r.data?.badges?.length);
+check('badges earned by playing: first note, group, perfect score, first win', ['first_note', 'team_player', 'perfect_score', 'first_win'].every((k) => earnedB.has(k)), [...earnedB]);
+check('locked badges stay locked', !earnedB.has('streak_30') && !earnedB.has('level_10'), [...earnedB]);
+r = await call(tokA, 'GET', '/me/badges'); check('creating a group and a note earn badges', r.data.badges.find((b: any) => b.key === 'team_player')?.earned && r.data.badges.find((b: any) => b.key === 'first_note')?.earned, r.data.badges.filter((b: any) => b.earned).map((b: any) => b.key));
+r = await call(tokA, 'GET', '/notifications'); check('earning a badge notifies', r.data.items.some((n: any) => /Шинэ тэмдэг/.test(n.title)), r.data.items.map((n: any) => n.title));
+
+// --- public quiz library
+r = await call(tokA, 'PATCH', `/quizzes/${gq.id}`, { isPublic: true }); check('a group quiz cannot be published (400)', r.status === 400, r);
+r = await call(tokB, 'PATCH', `/quizzes/${quiz.id}`, { isPublic: true }); check('only the owner can publish (404)', r.status === 404, r);
+r = await call(tokA, 'PATCH', `/quizzes/${quiz.id}`, { isPublic: 'yes' }); check('publish flag must be a boolean (400)', r.status === 400, r);
+r = await call(tokA, 'PATCH', `/quizzes/${quiz.id}`, { isPublic: true }); check('owner publishes a personal quiz', r.status === 200 && r.data?.isPublic === true, r.data);
+r = await call(tokB, 'GET', '/library'); const libItem = r.data?.items?.find((i: any) => i.id === quiz.id);
+check('published quiz shows in the library', r.status === 200 && !!libItem && libItem.authorName === 'E2E Admin' && libItem.questionCount === 3 && libItem.sample.length === 2 && libItem.mine === false && libItem.copied === false, libItem);
+check('unpublished quizzes are not listed', !r.data.items.some((i: any) => i.id === gq.id));
+r = await call(tokA, 'GET', '/library'); check('the author sees it flagged as theirs', r.data.items.find((i: any) => i.id === quiz.id)?.mine === true, r.data);
+r = await call(tokB, 'GET', '/library?q=while'); check('library search by title', r.data.items.some((i: any) => i.id === quiz.id), r.data);
+r = await call(tokB, 'GET', '/library?q=zzzznothing'); check('library search with no match is empty', r.data.items.length === 0, r.data);
+r = await call(tokB, 'GET', '/library?q=%25'); check('% in a search is a literal, not a wildcard', r.data.items.length === 0, r.data.items.length);
+r = await call(tokA, 'POST', `/library/${quiz.id}/copy`); check('cannot copy your own quiz (400)', r.status === 400, r);
+r = await call(tokB, 'POST', `/library/${gq.id}/copy`); check('cannot copy a non-public quiz (404)', r.status === 404, r);
+r = await call(tokB, 'POST', `/library/${quiz.id}/copy`); const copy = r.data;
+check('copy a public quiz', r.status === 201 && copy?.ownerId === userB?.id && copy?.isPublic === false && copy?.questions?.length === 3 && copy?.questions?.[0]?.id !== quiz.questions[0].id, r);
+r = await call(tokB, 'POST', `/library/${quiz.id}/copy`); check('copying twice is refused (409)', r.status === 409, r);
+r = await call(tokB, 'GET', `/quizzes/${copy?.id}`); check('the copy is a normal personal quiz for the copier', r.status === 200, r.status);
+r = await call(tokC, 'GET', `/quizzes/${copy?.id}`); check('the copy is private to the copier (404)', r.status === 404, r.status);
+r = await call(tokC, 'GET', '/library?sort=popular'); check('copy count went up', r.data.items.find((i: any) => i.id === quiz.id)?.copyCount === 1, r.data.items);
+r = await call(tokA, 'GET', '/notifications'); check('the author is told about the copy', r.data.items.some((n: any) => /хуулж авлаа/.test(n.title)), r.data.items.map((n: any) => n.title));
+r = await call(tokA, 'PATCH', `/quizzes/${quiz.id}`, { isPublic: false }); check('unpublish', r.status === 200 && r.data?.isPublic === false, r.data);
+r = await call(tokC, 'GET', '/library'); check('unpublished quiz leaves the library', !r.data.items.some((i: any) => i.id === quiz.id));
+r = await call(tokC, 'POST', `/library/${quiz.id}/copy`); check('and can no longer be copied (404)', r.status === 404, r);
+check('the earlier copy survives unpublishing', (await call(tokB, 'GET', `/quizzes/${copy?.id}`)).status === 200);
+
+// --- group announcements and comments
+r = await call(tokB, 'POST', `/classes/${klass?.id}/posts`, { body: 'hi' }); check('members cannot post announcements (403)', r.status === 403, r);
+r = await call(tokA, 'POST', `/classes/${klass?.id}/posts`, { body: '   ' }); check('empty announcement rejected (400)', r.status === 400, r);
+r = await call(tokA, 'POST', `/classes/${klass?.id}/posts`, { body: 'x'.repeat(2001) }); check('too-long announcement rejected (400)', r.status === 400, r.status);
+r = await call(tokA, 'POST', `/classes/${klass?.id}/posts`, { body: 'First announcement' });
+check('admin posts an announcement', r.status === 201 && r.data?.length === 1 && r.data[0].body === 'First announcement' && r.data[0].author.name === 'E2E Admin', r.data);
+r = await call(tokA, 'POST', `/classes/${klass?.id}/posts`, { body: 'Second announcement' }); const twoPosts = r.data;
+check('newest announcement comes first', twoPosts[0].body === 'Second announcement' && twoPosts.length === 2, twoPosts.map((p: any) => p.body));
+const firstPost = twoPosts.find((p: any) => p.body === 'First announcement'); const secondPost = twoPosts.find((p: any) => p.body === 'Second announcement');
+r = await call(tokB, 'GET', '/notifications'); check('members are notified of an announcement', r.data.items.some((n: any) => /шинэ зарлал/.test(n.title)), r.data.items.map((n: any) => n.title));
+r = await call(tokB, 'GET', `/classes/${klass?.id}/posts`); check('members can read announcements', r.status === 200 && r.data.length === 2 && r.data.every((p: any) => p.canDelete === false), r.data);
+r = await call(tokA, 'GET', `/classes/${klass?.id}/posts`); check('admin can delete any announcement', r.data.every((p: any) => p.canDelete === true), r.data);
+check('non-members cannot read announcements (404)', (await call(tokC, 'GET', `/classes/${klass?.id}/posts`)).status === 404);
+check('bad group id -> 404', (await call(tokA, 'GET', '/classes/nope/posts')).status === 404);
+r = await call(tokB, 'PATCH', `/posts/${firstPost?.id}`, { pinned: true }); check('members cannot pin (403)', r.status === 403, r);
+r = await call(tokA, 'PATCH', `/posts/${firstPost?.id}`, { pinned: true }); check('admin pins an announcement', r.status === 200, r);
+r = await call(tokA, 'GET', `/classes/${klass?.id}/posts`); check('pinned announcements sort first', r.data[0].id === firstPost?.id && r.data[0].pinned === true, r.data.map((p: any) => p.pinned));
+r = await call(tokB, 'POST', `/posts/${firstPost?.id}/comments`, { body: '  ' }); check('empty comment rejected (400)', r.status === 400, r);
+r = await call(tokC, 'POST', `/posts/${firstPost?.id}/comments`, { body: 'let me in' }); check('non-members cannot comment (404)', r.status === 404, r);
+r = await call(tokB, 'POST', `/posts/${firstPost?.id}/comments`, { body: 'Thanks!' }); check('member comments', r.status === 201, r);
+r = await call(tokA, 'POST', `/posts/${firstPost?.id}/comments`, { body: 'You are welcome' }); check('admin comments too', r.status === 201, r);
+r = await call(tokA, 'GET', '/notifications'); check('the post author is told about a comment', r.data.items.some((n: any) => /сэтгэгдэл бичлээ/.test(n.title)), r.data.items.map((n: any) => n.title));
+r = await call(tokB, 'GET', `/classes/${klass?.id}/posts`);
+const pinned = r.data.find((p: any) => p.id === firstPost?.id);
+check('comments are listed oldest first with delete rights', pinned.comments.length === 2 && pinned.comments[0].body === 'Thanks!' && pinned.comments[0].canDelete === true && pinned.comments[1].canDelete === false, pinned.comments);
+const adminComment = pinned.comments[1], memberComment = pinned.comments[0];
+r = await call(tokB, 'DELETE', `/comments/${adminComment.id}`); check("members cannot delete someone else's comment (403)", r.status === 403, r);
+r = await call(tokC, 'DELETE', `/comments/${adminComment.id}`); check('non-members get 404 on comments', r.status === 404, r);
+r = await call(tokA, 'DELETE', `/comments/${memberComment.id}`); check("admin deletes a member's comment", r.status === 200, r);
+r = await call(tokB, 'DELETE', `/posts/${firstPost?.id}`); check('members cannot delete announcements (403)', r.status === 403, r);
+r = await call(tokA, 'DELETE', `/posts/${secondPost?.id}`); check('admin deletes an announcement', r.status === 200, r);
+r = await call(tokA, 'GET', `/classes/${klass?.id}/posts`); check('deleted announcement is gone, the other remains with its comment', r.data.length === 1 && r.data[0].id === firstPost?.id && r.data[0].comments.length === 1, r.data);
+
 // --- deletion / leave / robustness
 r = await call(tokA, 'GET', '/notes/not-a-uuid'); check('malformed id -> 404 (not 500)', r.status === 404, r.status);
 r = await call(tokA, 'GET', '/materials/undefined'); check('malformed material id -> 404', r.status === 404, r.status);

@@ -11,6 +11,8 @@ export interface User {
   avatarOptions: AvatarOptions | null;
   /** Bought shop avatar currently worn (wins over avatarOptions). */
   equippedItemId: string | null;
+  /** Appears on the global XP leaderboard. */
+  showOnLeaderboard: boolean;
 }
 
 export interface Group {
@@ -50,6 +52,9 @@ export interface Quiz {
   sourceNoteId: string | null;
   /** Set for a personal quiz (only its owner sees it). */
   ownerId: string | null;
+  /** Shared in the public library. */
+  isPublic: boolean;
+  copyCount: number;
   title: string;
   questions: Question[];
   generatedBy: 'ai' | 'rule-based';
@@ -169,6 +174,32 @@ export interface PersonSummary {
   name: string;
   avatarOptions: AvatarOptions | null;
   equippedItemId: string | null;
+}
+
+export interface PostAuthor {
+  id: string;
+  name: string;
+  avatarOptions: AvatarOptions | null;
+  equippedItemId: string | null;
+}
+
+export interface PostComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  author: PostAuthor;
+  canDelete: boolean;
+}
+
+/** A group announcement with its comments. */
+export interface ClassPost {
+  id: string;
+  body: string;
+  pinned: boolean;
+  createdAt: string;
+  author: PostAuthor;
+  canDelete: boolean;
+  comments: PostComment[];
 }
 
 export interface ClassPeople {
@@ -314,4 +345,46 @@ export class ApiError extends Error {
     this.status = status;
     this.payload = payload;
   }
+}
+
+// --- Community features ---------------------------------------------------
+
+export interface LeaderboardEntry {
+  rank: number;
+  id: string;
+  name: string;
+  xp: number;
+  level: number;
+  avatarOptions: AvatarOptions | null;
+  equippedItemId: string | null;
+  isMe: boolean;
+}
+
+export interface LeaderboardResponse {
+  scope: 'global' | 'class';
+  rows: LeaderboardEntry[];
+  /** The caller's own standing (rank is null if they opted out of the global list). */
+  me: { rank: number | null; xp: number; level: number };
+}
+
+export interface BadgeItem {
+  key: string;
+  emoji: string;
+  name: string;
+  hint: string;
+  earned: boolean;
+  earnedAt: string | null;
+}
+
+export interface LibraryItem {
+  id: string;
+  title: string;
+  questionCount: number;
+  copyCount: number;
+  publishedAt: string | null;
+  authorName: string;
+  /** First couple of question prompts, as a teaser. */
+  sample: string[];
+  mine: boolean;
+  copied: boolean;
 }

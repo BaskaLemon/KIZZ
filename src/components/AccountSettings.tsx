@@ -33,7 +33,7 @@ export function AccountSettings() {
   async function saveName() {
     setSavingName(true);
     try {
-      const next = await api.updateProfile(name);
+      const next = await api.updateProfile({ name });
       updateUser({ name: next.name });
       toast('Нэр шинэчлэгдлээ');
     } catch (err) {
@@ -85,6 +85,32 @@ export function AccountSettings() {
         >
           Хадгалах
         </Button>
+      </div>
+
+      <div className="mt-6 border-t border-line pt-5">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={user?.showOnLeaderboard ?? true}
+            onChange={async (e) => {
+              const next = e.target.checked;
+              try {
+                const updated = await api.updateProfile({ showOnLeaderboard: next });
+                updateUser({ showOnLeaderboard: updated.showOnLeaderboard });
+                toast(next ? 'Жагсаалтад харагдана' : 'Жагсаалтаас нуулаа');
+              } catch (err) {
+                toast(errorOf(err, 'Алдаа гарлаа'), 'error');
+              }
+            }}
+            className="mt-1 h-4 w-4 accent-violet"
+          />
+          <span>
+            <span className="block text-base font-bold text-ink">Тэргүүлэгчдийн жагсаалтад харагдах</span>
+            <span className="block text-sm text-ink-soft">
+              Унтраавал таны нэр нийтийн XP жагсаалтад гарахгүй (бүлгийн доторх жагсаалтад гишүүд харна).
+            </span>
+          </span>
+        </label>
       </div>
 
       <div className="mt-6 border-t border-line pt-5">

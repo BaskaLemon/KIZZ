@@ -7,6 +7,7 @@ import {
   users,
   type PointTransactionType,
 } from '@/db/schema';
+import { grantBadge } from './badges';
 import { levelForXp } from './level';
 
 // The callback type `db.transaction()` passes in — derived from getDb()'s own
@@ -83,6 +84,8 @@ export async function recordTransaction(
           dedupeKey: `level:${after}`,
         })
         .onConflictDoNothing();
+      if (after >= 5) await grantBadge(tx, input.userId, 'level_5');
+      if (after >= 10) await grantBadge(tx, input.userId, 'level_10');
     }
   }
 

@@ -119,6 +119,17 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const patch: Partial<typeof quizzes.$inferInsert> = {};
+  if ('isPublic' in body) {
+    // Only a personal quiz can be shared; a group's quizzes stay in the group.
+    if (typeof body.isPublic !== 'boolean' || !quiz.ownerId) {
+      return NextResponse.json(
+        { error: 'Зөвхөн хувийн quiz-ийг нийтийн санд нийтэлж болно.' },
+        { status: 400 },
+      );
+    }
+    patch.isPublic = body.isPublic;
+    patch.publishedAt = body.isPublic ? (quiz.publishedAt ?? new Date()) : null;
+  }
   if ('title' in body) {
     const title = parseTitle(body.title);
     if (!title) {
