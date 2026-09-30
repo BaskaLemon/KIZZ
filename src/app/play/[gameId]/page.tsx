@@ -16,6 +16,8 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
 import { avatarSrcFor } from '@/lib/avatar';
+import { refreshNotifications } from '@/lib/events';
+import { MIN_PLAYERS_FOR_REWARDS } from '@/lib/points/rules';
 import { useToast } from '@/lib/toast';
 import type { ApiError, GameState, LeaderboardRow } from '@/lib/types';
 
@@ -113,6 +115,12 @@ export default function PlayGamePage({
     return () => clearTimeout(id);
   }, [isHost, activeUnrevealed, startedAt, gameId]);
 
+  // A finished game may have levelled the player up — refresh the bell.
+  const finished = state?.status === 'finished';
+  useEffect(() => {
+    if (finished) refreshNotifications();
+  }, [finished]);
+
   // Everyone has answered → no reason to wait out the timer.
   const answeredCount = state?.answeredCount ?? 0;
   const playerCount = state?.players.length ?? 0;
@@ -181,6 +189,11 @@ export default function PlayGamePage({
             code={state.code}
             hint={`${state.players.length} тоглогч нэгдсэн`}
           />
+          <p className="text-center text-sm text-ink-soft">
+            {state.players.length >= MIN_PLAYERS_FOR_REWARDS
+              ? 'Coin, XP олгогдоно'
+              : `Coin, XP олгогдохын тулд дор хаяж ${MIN_PLAYERS_FOR_REWARDS} тоглогч хэрэгтэй`}
+          </p>
           <PlayerGrid
             players={state.players.map((p) => ({ id: p.id, name: p.name, avatar: avatarOf(p) }))}
           />
@@ -286,6 +299,12 @@ export default function PlayGamePage({
       {state.status === 'finished' && (
         <div className="flex w-full max-w-155 flex-col items-center gap-6">
           <p className="font-display text-3xl">Тоглоом дууслаа!</p>
+          {state.myReward && <RewardCard state={state} reward={state.myReward} />}
+          {state.isHost && state.players.length < MIN_PLAYERS_FOR_REWARDS && (
+            <p className="text-center text-sm text-ink-soft">
+              {MIN_PLAYERS_FOR_REWARDS}-аас цөөн тоглогчтой тул coin, XP олгогдсонгүй.
+            </p>
+          )}
           <Leaderboard rows={toLeaderboard(state)} />
           <Button variant="ghost" onClick={() => router.push('/play')}>
             Буцах
@@ -293,5 +312,43 @@ export default function PlayGamePage({
         </div>
       )}
     </StageScreen>
+  );
+}
+
+/** What the player earned from a finished game, and why if it is nothing. */
+function RewardCard({
+  state,
+  reward,
+}: {
+  state: GameState;
+  reward: NonNullable<GameState['myReward']>;
+}) {
+  const earned = reward.coins > 0 || reward.xp > 0;
+  let reason = '';
+  if (!earned) {
+    reason =
+      state.players.length < MIN_PLAYERS_FOR_REWARDS
+        ? `Coin, XP авахын тулд дор хаяж ${MIN_PLAYERS_FOR_REWARDS} тоглогч хэрэгтэй.`
+        : 'Оноо аваагүй тул энэ удаад шагнал олгогдсонгүй.';
+  } else if (reward.coins === 0) {
+    reason = 'Өнөөдрийн coin-ы дээд хязгаарт хүрсэн тул зөвхөн XP авлаа.';
+  }
+  return (
+    <div className="w-full rounded-2xl border-2 border-violet bg-violet/10 p-5 text-center">
+      {reward.rank && (
+        <p className="text-sm font-semibold text-ink-soft">Таны байр: #{reward.rank}</p>
+      )}
+      <div className="mt-2 flex items-center justify-center gap-6">
+        <div>
+          <p className="font-display text-4xl text-amber">+{reward.coins}</p>
+          <p className="text-xs font-semibold text-ink-soft">Kizz Coin</p>
+        </div>
+        <div>
+          <p className="font-display text-4xl text-mint">+{reward.xp}</p>
+          <p className="text-xs font-semibold text-ink-soft">XP</p>
+        </div>
+      </div>
+      {reason && <p className="mt-3 text-sm text-ink-soft">{reason}</p>}
+    </div>
   );
 }

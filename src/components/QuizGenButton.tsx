@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Gamepad2, Loader2, Sparkles, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { refreshNotifications } from '../lib/events';
+import { useToast } from '../lib/toast';
 import type { ApiError, Quiz } from '../lib/types';
 
 const COUNT_OPTIONS = [3, 5, 10, 20];
@@ -18,6 +20,7 @@ export function QuizGenButton({
   onGenerated?: (quiz: Quiz) => void;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState(5);
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>(
@@ -40,6 +43,10 @@ export function QuizGenButton({
       const generated = await api.generateQuiz(noteId, count);
       setQuiz(generated);
       setStatus('done');
+      if (generated.reward) {
+        toast(`🎉 Анхны quiz! +${generated.reward.xp} XP`);
+        refreshNotifications();
+      }
       onGenerated?.(generated);
     } catch (err) {
       setError((err as ApiError).payload?.error || 'Quiz үүсгэхэд алдаа гарлаа');

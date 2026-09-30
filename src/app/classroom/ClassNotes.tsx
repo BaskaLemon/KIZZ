@@ -8,6 +8,7 @@ import { QuizGenButton } from '@/components/QuizGenButton';
 import { NoteAttachments } from '@/components/NoteAttachments';
 import { UserAvatarList, type Collaborator } from '@/components/UserAvatarList';
 import { api } from '@/lib/api';
+import { refreshNotifications } from '@/lib/events';
 import { useToast } from '@/lib/toast';
 import type { ApiError, ClassPeople, Note, User } from '@/lib/types';
 
@@ -169,6 +170,8 @@ export function ClassNotes({
         ? await api.createClassNote(classId, newTitle.trim())
         : await api.createMyNote(newTitle.trim());
       setNewTitle('');
+      if (note.reward) toast(`🎉 Анхны тэмдэглэл! +${note.reward.xp} XP`);
+      refreshNotifications();
       setNotes((prev) => (prev ? [note, ...prev] : [note]));
       setActiveNoteId(note.id);
     } catch (err) {

@@ -6,6 +6,7 @@ import { AttachmentLink } from '@/components/AttachmentLink';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import { dueInfo } from '@/lib/dueDate';
+import { refreshNotifications } from '@/lib/events';
 import type { ApiError, AssignmentDetail, SubmitResult } from '@/lib/types';
 
 export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
@@ -68,6 +69,7 @@ export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
     try {
       const r = await api.submitAssignment(assignmentId, { answers });
       setResult(r);
+      if (r.reward) refreshNotifications();
     } catch (err) {
       toast(
         (err as ApiError).payload?.error || 'Илгээхэд алдаа гарлаа',
@@ -137,6 +139,12 @@ export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
         <p className="mt-3 font-bold text-violet">
           Дүн: {result.score}% ({result.correctCount}/{result.totalQuestions}{' '}
           зөв)
+          {result.reward && (
+            <span className="ml-2 text-mint">
+              +{result.reward.xp} XP
+              {result.reward.coins > 0 && `, +${result.reward.coins} coin`}
+            </span>
+          )}
         </p>
       )}
     </div>

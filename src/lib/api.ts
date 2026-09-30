@@ -197,6 +197,9 @@ export const api = {
   listNotifications: () =>
     request<{ items: AppNotification[]; unread: number }>('GET', '/notifications'),
   markNotificationsRead: () => request('POST', '/notifications/read'),
+  markNotificationRead: (id: string) => request('PATCH', `/notifications/${id}`),
+  deleteNotification: (id: string) => request('DELETE', `/notifications/${id}`),
+  clearNotifications: () => request('DELETE', '/notifications'),
   listNoteAttachments: (noteId: string) =>
     request<NoteAttachment[]>('GET', `/notes/${noteId}/attachments`),
   uploadNoteAttachment: (noteId: string, file: File) =>

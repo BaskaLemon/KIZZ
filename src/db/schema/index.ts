@@ -136,6 +136,9 @@ export const notifications = pgTable(
     // App-relative link the notification opens, e.g. /classroom?classId=...
     href: text('href'),
     readAt: timestamp('read_at', { withTimezone: true }),
+    // Generated reminders (see dedupeKey) are hidden with this instead of being
+    // deleted, so they are not created again on the next fetch.
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
     // Set for generated reminders so the same one is only ever created once
     // per user (e.g. `due:<assignmentId>`); null for ordinary notifications.
     dedupeKey: text('dedupe_key'),
