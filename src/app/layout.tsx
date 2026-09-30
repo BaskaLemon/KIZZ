@@ -13,7 +13,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: 'KIZZ — хамтдаа судал, тоглож бэхжүүл',
+  title: 'KIZZ — Сур Сорь Тогло Хөгж',
 };
 
 export const viewport = {
