@@ -5,6 +5,7 @@ import './global.css';
 import { AuthProvider } from '@/lib/auth';
 import { ToastProvider } from '@/lib/toast';
 import { ConfirmProvider } from '@/lib/confirm';
+import { SITE_URL } from '@/lib/site';
 
 // One rounded, friendly family for headings and body. `cyrillic` matters:
 // without it Mongolian text silently falls back to the system font.
@@ -13,8 +14,28 @@ const nunito = Nunito({
   variable: '--font-nunito',
 });
 
+const DESCRIPTION =
+  'Тэмдэглэлээ бич, нэг товшилтоор AI-аар quiz болго, найзуудтайгаа шууд тоглож өрсөлд. Сурагч, оюутан, ажилтан, бие даан сурч байгаа хэн бүхэнд.';
+
 export const metadata: Metadata = {
-  title: 'KIZZ — Сур Сорь Тогло Хөгж',
+  metadataBase: new URL(SITE_URL),
+  title: { default: 'KIZZ — Сур Сорь Тогло Хөгж', template: '%s — KIZZ' },
+  description: DESCRIPTION,
+  applicationName: 'KIZZ',
+  openGraph: {
+    type: 'website',
+    siteName: 'KIZZ',
+    locale: 'mn_MN',
+    title: 'KIZZ — Сур Сорь Тогло Хөгж',
+    description: DESCRIPTION,
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'KIZZ' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'KIZZ — Сур Сорь Тогло Хөгж',
+    description: DESCRIPTION,
+    images: ['/og.png'],
+  },
 };
 
 export const viewport = {

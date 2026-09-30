@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ContactLine, LegalPage } from '@/components/LegalPage';
 
-export const metadata: Metadata = { title: 'Үйлчилгээний нөхцөл — KIZZ' };
+export const metadata: Metadata = { title: 'Үйлчилгээний нөхцөл' };
 
 export default function TermsPage() {
   return (

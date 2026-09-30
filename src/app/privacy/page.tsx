@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { ContactLine, LegalPage } from '@/components/LegalPage';
 
-export const metadata: Metadata = { title: 'Нууцлалын бодлого — KIZZ' };
+export const metadata: Metadata = { title: 'Нууцлалын бодлого' };
 
 export default function PrivacyPage() {
   return (

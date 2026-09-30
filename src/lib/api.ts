@@ -29,6 +29,27 @@ import type {
 
 const BASE = '/api';
 
+const NETWORK_ERROR = 'Сүлжээнд холбогдож чадсангүй. Интернэтээ шалгаад дахин оролдоно уу.';
+const SERVER_ERROR = 'Серверт алдаа гарлаа. Түр хүлээгээд дахин оролдоно уу.';
+
+/** fetch() that turns a dropped connection into an ApiError with a readable
+ * message (otherwise it surfaces as an opaque TypeError). */
+async function safeFetch(input: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch {
+    throw new ApiError(NETWORK_ERROR, 0, { error: NETWORK_ERROR });
+  }
+}
+
+/** The message to show for a failed response: the server's own if it sent
+ * one, otherwise something sensible for the status. */
+function failure(res: Response, data: { message?: string; error?: string }, fallback: string): ApiError {
+  const message =
+    data.message || data.error || (res.status >= 500 ? SERVER_ERROR : fallback);
+  return new ApiError(message, res.status, { ...data, error: data.error ?? message });
+}
+
 function authHeaders(): Record<string, string> {
   const token = authStorage.getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -38,15 +59,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const headers: Record<string, string> = { ...authHeaders() };
   if (body) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(BASE + path, {
+  const res = await safeFetch(BASE + path, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new ApiError(data.message || data.error || 'Request failed', res.status, data);
-  }
+  if (!res.ok) throw failure(res, data, 'Алдаа гарлаа');
   return data as T;
 }
 
@@ -69,15 +88,13 @@ async function postForm<T>(
     if (value !== undefined) formData.append(key, value);
   }
   if (file) formData.append('file', file);
-  const res = await fetch(BASE + path, {
+  const res = await safeFetch(BASE + path, {
     method: 'POST',
     headers: authHeaders(),
     body: formData,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new ApiError(data.message || data.error || 'Илгээхэд алдаа гарлаа', res.status, data);
-  }
+  if (!res.ok) throw failure(res, data, 'Илгээхэд алдаа гарлаа');
   return data as T;
 }
 
@@ -85,10 +102,10 @@ async function postForm<T>(
  * plain `<a href>` because auth here is a bearer token, not a cookie — a
  * top-level navigation wouldn't carry the Authorization header. */
 async function downloadFile(path: string): Promise<{ blob: Blob; fileName: string }> {
-  const res = await fetch(BASE + path, { headers: authHeaders() });
+  const res = await safeFetch(BASE + path, { headers: authHeaders() });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new ApiError(data.message || data.error || 'Татахад алдаа гарлаа', res.status, data);
+    throw failure(res, data, 'Татахад алдаа гарлаа');
   }
   const disposition = res.headers.get('Content-Disposition') || '';
   const starMatch = /filename\*=UTF-8''([^;]+)/.exec(disposition);
