@@ -26,7 +26,7 @@ function LoginForm() {
   // client-side) — default to the light logo so server and first client
   // render agree, then switch once we know the real theme.
   const mounted = useMounted();
-  const logoSrc = mounted && resolvedTheme === 'dark' ? '/logo2.jpeg' : '/logo.jpeg';
+  const logoSrc = mounted && resolvedTheme === 'dark' ? '/logo2.png' : '/logo.png';
 
   const [mode, setMode] = useState<Mode>(
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin',
@@ -69,7 +69,7 @@ function LoginForm() {
         <img
           src={logoSrc}
           alt="KIZZ"
-          className="mx-auto w-full max-w-[440px]"
+          className="mx-auto w-full max-w-[280px]"
         />
 
         <div className="mt-6">
