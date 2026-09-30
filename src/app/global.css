@@ -88,7 +88,9 @@ body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--color-paper);
+  /* No background here: the page colour is on <html>, and the doodle pattern
+     (body::before, z-index -1) has to show between the two. A body background
+     would paint over it. */
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
