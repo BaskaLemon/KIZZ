@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClipboardList, Gamepad2, Trash2 } from 'lucide-react';
+import { ClipboardList, Gamepad2, Pencil, Trash2 } from 'lucide-react';
 import { Button, Card, EmptyState, SkeletonList, TextInput } from '@/components/ui';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { QuizGenButton } from '@/components/QuizGenButton';
+import { QuizEditor } from '@/components/QuizEditor';
 import { QuizPlayer } from '@/components/QuizPlayer';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
@@ -24,6 +26,7 @@ export function ClassQuiz({
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
   const [starting, setStarting] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [editing, setEditing] = useState<Quiz | null>(null);
 
   useEffect(() => {
     Promise.all([api.listClassQuizzes(classId), api.listClassNotes(classId)])
@@ -74,6 +77,17 @@ export function ClassQuiz({
 
   return (
     <div className="flex flex-col gap-6">
+      {starting !== null && <LoadingScreen fullScreen />}
+      {editing && (
+        <QuizEditor
+          quiz={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(saved) => {
+            setQuizzes((prev) => (prev ? prev.map((q) => (q.id === saved.id ? saved : q)) : prev));
+            setEditing(null);
+          }}
+        />
+      )}
       <div>
         <h3 className="mb-2.5 text-lg">Quiz-үүд</h3>
         {quizzes === null ? (
@@ -122,8 +136,19 @@ export function ClassQuiz({
                   className="shrink-0"
                 >
                   <Gamepad2 size={15} />
-                  {starting === quiz.id ? 'Үүсгэж байна...' : 'Тоглоом'}
+                  Тоглоом
                 </Button>
+                {isTeacher && (
+                  <button
+                    type="button"
+                    onClick={() => setEditing(quiz)}
+                    aria-label={`${quiz.title} засах`}
+                    title="Засах"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                )}
                 {isTeacher && (
                   <button
                     type="button"

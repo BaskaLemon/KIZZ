@@ -18,6 +18,7 @@ import type {
   NoteAttachment,
   PointTransaction,
   PurchaseResult,
+  Question,
   Quiz,
   ShopItem,
   StreakStatus,
@@ -136,12 +137,14 @@ export const api = {
     request<Note>('PATCH', `/notes/${noteId}`, patch),
 
   // quizzes
-  generateQuiz: (noteId: string, count: number, mode?: string) =>
-    request<Quiz>('POST', `/notes/${noteId}/generate-quiz`, { count, mode }),
+  generateQuiz: (noteId: string, count: number) =>
+    request<Quiz>('POST', `/notes/${noteId}/generate-quiz`, { count }),
   listQuizzes: (groupId: string) => request<Quiz[]>('GET', `/groups/${groupId}/quizzes`),
   listClassQuizzes: (classId: string) =>
     request<Quiz[]>('GET', `/classes/${classId}/quizzes`),
   deleteQuiz: (quizId: string) => request('DELETE', `/quizzes/${quizId}`),
+  updateQuiz: (quizId: string, patch: { title?: string; questions?: Question[] }) =>
+    request<Quiz>('PATCH', `/quizzes/${quizId}`, patch),
   getQuiz: (quizId: string) => request<Quiz>('GET', `/quizzes/${quizId}`),
 
   // live game — polling-based (no WebSocket/pub-sub service is configured

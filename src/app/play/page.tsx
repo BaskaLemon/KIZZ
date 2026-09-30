@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Trash2 } from 'lucide-react';
+import { Pencil, Play, Trash2 } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { QuizEditor } from '@/components/QuizEditor';
 import { Shell, View } from '@/components/Shell';
 import { Button, Card, EmptyState, LinkButton, TextInput } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -18,6 +19,7 @@ export default function PlayPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [code, setCode] = useState('');
   const [query, setQuery] = useState('');
+  const [editing, setEditing] = useState<Quiz | null>(null);
   const [starting, setStarting] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
 
@@ -75,6 +77,17 @@ export default function PlayPage() {
 
   return (
     <Shell activePath="/play">
+      {(starting !== null || joining) && <LoadingScreen fullScreen />}
+      {editing && (
+        <QuizEditor
+          quiz={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(saved) => {
+            setQuizzes((prev) => prev.map((q) => (q.id === saved.id ? saved : q)));
+            setEditing(null);
+          }}
+        />
+      )}
       <View narrow>
         <h2 className="mb-0.5 text-2xl">Шууд тоглоом</h2>
         <p className="mb-5 text-ink-soft">
@@ -83,7 +96,7 @@ export default function PlayPage() {
 
         {!user ? (
           <EmptyState title="Эхлээд нэвтэрнэ үү">
-            <p>Тоглоом тоглохын тулд бүртгэл хийх шаардлагатай.</p>
+            <p>Тоглоом тоглохын тулд нэвтрэх шаардлагатай.</p>
           </EmptyState>
         ) : (
           <div className="flex flex-col gap-5">
@@ -132,25 +145,38 @@ export default function PlayPage() {
                           {q.questions.length} асуулт
                         </p>
                       </div>
-                      {q.ownerId === user.id && (
-                        <button
-                          type="button"
-                          onClick={() => deleteQuiz(q)}
-                          aria-label={`${q.title} устгах`}
-                          title="Устгах"
-                          className="mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-coral/10 hover:text-coral"
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button
+                          variant="primary"
+                          onClick={() => hostGame(q.id)}
+                          disabled={starting === q.id}
                         >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                      <Button
-                        variant="primary"
-                        onClick={() => hostGame(q.id)}
-                        disabled={starting === q.id}
-                      >
-                        <Play size={15} />{' '}
-                        {starting === q.id ? 'Эхлүүлж байна...' : 'Тоглоом эхлүүлэх'}
-                      </Button>
+                          <Play size={15} />{' '}
+                          Тоглоом эхлүүлэх
+                        </Button>
+                        {q.ownerId === user.id && (
+                          <button
+                            type="button"
+                            onClick={() => setEditing(q)}
+                            aria-label={`${q.title} засах`}
+                            title="Засах"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                        )}
+                        {q.ownerId === user.id && (
+                          <button
+                            type="button"
+                            onClick={() => deleteQuiz(q)}
+                            aria-label={`${q.title} устгах`}
+                            title="Устгах"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-coral/10 hover:text-coral"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </Card>
                   ))}
                 </div>

@@ -45,7 +45,9 @@ export async function generateAiQuestions(
           text:
             'You write study quizzes. Reply with ONLY a JSON array. ' +
             'Each item: {"prompt": string, "options": [4 distinct strings], "correctIndex": 0-3, "explanation": string}. ' +
-            "Write in the same language as the note. Questions must be answerable from the note's content alone.",
+            "Write in the same language as the note. Questions must be answerable from the note's content alone. " +
+            'Make every wrong option plausible: same grammatical form, similar length and specificity as the correct one, ' +
+            'so the answer cannot be guessed from wording alone. Vary which index is correct.',
         },
       ],
     },

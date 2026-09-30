@@ -4,7 +4,6 @@ import { isUuid } from '@/lib/uuid';
 import { normalizeMime } from '@/lib/materials';
 import { matchesSignature } from '@/lib/fileSignature';
 import { rateLimit, resetRateLimits } from '@/lib/rateLimit';
-import { generateRuleBasedQuestions } from '@/lib/quiz/generateRuleBased';
 import { optionalText } from '@/lib/text';
 import { randomCode } from '@/lib/codes';
 
@@ -61,25 +60,6 @@ describe('rateLimit', () => {
   it('tracks keys independently', () => {
     for (let i = 0; i < 3; i++) rateLimit('a', 3, 60_000);
     expect(rateLimit('b', 3, 60_000)).toBeNull();
-  });
-});
-
-describe('generateRuleBasedQuestions', () => {
-  const note =
-    'Мицохондри бол эсийн эрчим хүчний үүсгүүр юм. Хлоропласт нь фотосинтез явуулдаг эсийн хэсэг юм. ' +
-    'Рибосом нь уураг нийлэгжүүлдэг эсийн бүтэц юм. Цөм нь удамшлын мэдээллийг хадгалдаг эсийн төв юм.';
-  it('builds 4-option questions with a valid correct index', () => {
-    const qs = generateRuleBasedQuestions(note, 3);
-    expect(qs.length).toBeGreaterThan(0);
-    for (const q of qs) {
-      expect(q.options).toHaveLength(4);
-      expect(q.correctIndex).toBeGreaterThanOrEqual(0);
-      expect(q.correctIndex).toBeLessThan(4);
-    }
-  });
-  it('returns nothing for an empty note and never exceeds the count', () => {
-    expect(generateRuleBasedQuestions('', 5)).toEqual([]);
-    expect(generateRuleBasedQuestions(note, 2).length).toBeLessThanOrEqual(2);
   });
 });
 

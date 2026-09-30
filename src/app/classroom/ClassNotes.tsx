@@ -229,7 +229,7 @@ export function ClassNotes({
                 Тэмдэглэлээс quiz үүсгэх
               </p>
               <p className="mt-1 text-xs leading-relaxed text-ink-soft">
-                Тэмдэглэлийн агуулгаас дүрэмт аргаар олон сонголттой асуулт
+                Тэмдэглэлийн агуулгаас AI олон сонголттой асуулт
                 үүсгэнэ.
               </p>
               <div className="mt-4">
