@@ -74,14 +74,24 @@ html {
   tab-size: 4;
   scroll-behavior: smooth;
 }
+/* The page colour lives on <html> too, so the whole canvas (including the
+   area below short content and mobile overscroll) always matches the theme. */
+html {
+  background: var(--color-paper);
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
 body {
   position: relative;
   margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 body::before {
   content: '';
@@ -91,12 +101,13 @@ body::before {
   background-image: url('/doodle-bg.webp');
   background-size: 1100px 1100px;
   background-repeat: repeat;
-  filter: blur(0px);
   opacity: 0.1;
   pointer-events: none;
 }
+/* A pre-inverted copy instead of `filter: invert(1)`: mobile Safari only
+   repainted part of the screen when that filter was toggled with the theme. */
 .dark body::before {
-  filter: invert(1) blur(0px);
+  background-image: url('/doodle-bg-dark.webp');
   opacity: 0.06;
 }
 h1,

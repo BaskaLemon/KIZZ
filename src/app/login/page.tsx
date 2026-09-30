@@ -1,13 +1,11 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useTheme } from 'next-themes';
 import { Button, Field, TextInput } from '@/components/ui';
-import { LoadingScreen } from '@/components/LoadingScreen';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { useMounted } from '@/hooks/useMounted';
 import { cx } from '@/lib/cx';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
@@ -16,17 +14,37 @@ import { ApiError } from '@/lib/types';
 
 type Mode = 'signin' | 'signup';
 
+/** Both logo variants are in the HTML and CSS shows the one that matches the
+ * theme class next-themes sets before first paint — no wrong logo, and no swap
+ * after hydration. */
+function LogoMark() {
+  return (
+    <>
+      <img
+        src="/logo.webp"
+        alt="KIZZ"
+        width={654}
+        height={621}
+        fetchPriority="high"
+        className="mx-auto w-full max-w-[280px] dark:hidden"
+      />
+      <img
+        src="/logo2.webp"
+        alt="KIZZ"
+        width={656}
+        height={622}
+        fetchPriority="high"
+        className="mx-auto hidden w-full max-w-[280px] dark:block"
+      />
+    </>
+  );
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
   const { user, ready, setSession } = useAuth();
-  const { resolvedTheme } = useTheme();
-  // resolvedTheme is unknown until mounted (next-themes reads localStorage
-  // client-side) — default to the light logo so server and first client
-  // render agree, then switch once we know the real theme.
-  const mounted = useMounted();
-  const logoSrc = mounted && resolvedTheme === 'dark' ? '/logo2.png' : '/logo.png';
 
   const [mode, setMode] = useState<Mode>(
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin',
@@ -35,6 +53,7 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (ready && user) router.replace('/');
@@ -66,11 +85,7 @@ function LoginForm() {
         <ThemeToggle />
       </div>
       <div className="w-full max-w-sm">
-        <img
-          src={logoSrc}
-          alt="KIZZ"
-          className="mx-auto w-full max-w-[280px]"
-        />
+        <LogoMark />
 
         <div className="mt-6">
           <div className="mb-8 flex gap-2 rounded-xl border border-line bg-paper p-1">
@@ -133,17 +148,29 @@ function LoginForm() {
             </Field>
 
             <Field label="Нууц үг">
-              <TextInput
-                type="password"
-                placeholder="Нууц үг"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete={
-                  mode === 'signin' ? 'current-password' : 'new-password'
-                }
-              />
+              <div className="relative">
+                <TextInput
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Нууц үг"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full pr-11"
+                  autoComplete={
+                    mode === 'signin' ? 'current-password' : 'new-password'
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Нууц үгийг нуух' : 'Нууц үгийг харуулах'}
+                  aria-pressed={showPassword}
+                  className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-ink-soft hover:bg-ink/5 hover:text-ink"
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
             </Field>
 
             <Button
@@ -160,6 +187,19 @@ function LoginForm() {
                   ? "Let's Go"
                   : 'Бүртгүүлэх'}
             </Button>
+            {mode === 'signup' && (
+              <p className="mt-3 text-center text-xs leading-relaxed text-ink-soft">
+                Бүртгүүлснээр та{' '}
+                <a href="/terms" target="_blank" className="font-semibold underline">
+                  Үйлчилгээний нөхцөл
+                </a>
+                ,{' '}
+                <a href="/privacy" target="_blank" className="font-semibold underline">
+                  Нууцлалын бодлогыг
+                </a>{' '}
+                хүлээн зөвшөөрнө.
+              </p>
+            )}
           </form>
 
           <p className="mt-6 text-center text-sm text-ink-soft">
@@ -195,7 +235,16 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<LoadingScreen fullScreen />}>
+    <Suspense
+      fallback={
+        <div className="relative flex min-h-screen flex-col items-center justify-center bg-paper-raised px-6 py-12">
+          <div className="w-full max-w-sm">
+            <LogoMark />
+            <div className="mt-6 h-[26rem]" aria-hidden />
+          </div>
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
