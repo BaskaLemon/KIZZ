@@ -75,6 +75,21 @@ export default function PlayPage() {
       </Shell>
     );
 
+  if (!user) {
+    return (
+      <Shell activePath="/play">
+        <View narrow>
+          <EmptyState title="Эхлээд нэвтэрнэ үү">
+            <p>Тоглоом тоглохын тулд нэвтрэх шаардлагатай.</p>
+            <LinkButton href="/login" variant="primary" className="mt-4">
+              Нэвтрэх / Бүртгүүлэх →
+            </LinkButton>
+          </EmptyState>
+        </View>
+      </Shell>
+    );
+  }
+
   return (
     <Shell activePath="/play">
       {(starting !== null || joining) && <LoadingScreen fullScreen />}
@@ -94,11 +109,6 @@ export default function PlayPage() {
           Тэмдэглэлээсээ үүсгэсэн quiz-ээ Kahoot маягаар тоглоорой.
         </p>
 
-        {!user ? (
-          <EmptyState title="Эхлээд нэвтэрнэ үү">
-            <p>Тоглоом тоглохын тулд нэвтрэх шаардлагатай.</p>
-          </EmptyState>
-        ) : (
           <div className="flex flex-col gap-5">
             <Card className="rounded-lg">
               <h3 className="mb-3 text-[17px]">Кодоор нэгдэх</h3>
@@ -183,7 +193,6 @@ export default function PlayPage() {
               )}
             </div>
           </div>
-        )}
       </View>
     </Shell>
   );
