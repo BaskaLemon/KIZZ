@@ -89,7 +89,7 @@ export function Landing() {
         })}
       </section>
 
-      <section className="mt-6 flex max-w-4xl flex-wrap items-center justify-between gap-8 rounded-3xl bg-gradient-to-br from-[#ea580c] to-[#b93a0b] p-8 text-white shadow-sm max-sm:p-6">
+      <section className="mt-6 flex max-w-4xl flex-wrap items-center justify-between gap-8 rounded-3xl bg-gradient-to-br from-[#16a34a] to-[#0d6b31] p-8 text-white shadow-sm max-sm:p-6">
         <div className="min-w-0 max-w-md">
           <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
             Өөрийнхөөрөө
