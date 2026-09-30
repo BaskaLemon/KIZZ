@@ -19,14 +19,42 @@ const NAV = [
 export function Shell({
   activePath,
   children,
+  immersive = false,
 }: {
   activePath: string;
   children: ReactNode;
+  /** Live-game mode: no navigation, so nobody taps away mid-question. */
+  immersive?: boolean;
 }) {
   const { avatarUri } = useAvatar();
 
+  if (immersive) {
+    return (
+      <div className="min-h-screen">
+        <header className="sticky top-0 z-40 flex h-12 items-center justify-between border-b border-line bg-paper-raised/90 px-3 backdrop-blur">
+          <Link
+            href="/play"
+            className="rounded-full px-3 py-1 text-sm font-semibold text-ink-soft hover:bg-ink/5 hover:text-ink"
+          >
+            ← Гарах
+          </Link>
+          <ThemeToggle />
+        </header>
+        <main id="main" tabIndex={-1} className="min-w-0 outline-none">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-paper"
+      >
+        Үндсэн агуулга руу очих
+      </a>
       <header className="sticky top-0 z-40 flex h-14 items-center gap-0.5 border-b border-line bg-paper-raised/90 px-2 backdrop-blur sm:h-16 sm:gap-1 sm:px-3 md:px-5">
         <Link
           href="/profile"
@@ -63,11 +91,17 @@ export function Shell({
         <NotificationBell />
         <ThemeToggle />
       </header>
-      <div className="min-w-0 pb-20 sm:pb-0">{children}</div>
+      <main
+        id="main"
+        tabIndex={-1}
+        className="min-w-0 pb-[calc(5rem+env(safe-area-inset-bottom))] outline-none sm:pb-0"
+      >
+        {children}
+      </main>
 
       <nav
         aria-label="Үндсэн цэс"
-        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-paper-raised/95 backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-paper-raised/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
       >
         {NAV.map((item) => {
           const Icon = item.icon;

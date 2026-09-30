@@ -7,9 +7,15 @@ export const LETTERS = ['A', 'B', 'C', 'D'] as const;
 const ANSWER_BG = ['bg-answer-1', 'bg-answer-2', 'bg-answer-3', 'bg-answer-4'];
 
 /** Game screens live inside the regular app shell (header, nav, theme). */
-export function StageScreen({ children }: { children: ReactNode }) {
+export function StageScreen({
+  children,
+  immersive = false,
+}: {
+  children: ReactNode;
+  immersive?: boolean;
+}) {
   return (
-    <Shell activePath="/play">
+    <Shell activePath="/play" immersive={immersive}>
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] flex-col items-center p-4 sm:p-8">
         {children}
       </div>

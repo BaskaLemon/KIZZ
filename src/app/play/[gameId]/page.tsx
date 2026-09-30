@@ -175,7 +175,7 @@ export default function PlayGamePage({
   }
 
   return (
-    <StageScreen>
+    <StageScreen immersive={state.status === 'active'}>
       <StageHeader>
         {state.status === 'active' && !state.revealed && (
           <TimerRing seconds={secondsLeft} />
