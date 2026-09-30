@@ -110,6 +110,8 @@ export const api = {
   changePassword: (currentPassword: string, newPassword: string) =>
     request('POST', '/me/password', { currentPassword, newPassword }),
   deleteAccount: (password: string) => request('DELETE', '/me', { password }),
+  equipAvatar: (itemId: string | null) =>
+    request<{ equippedItemId: string | null }>('PUT', '/me/avatar/equip', { itemId }),
   updateAvatar: (options: AvatarOptions) =>
     request<{ avatarOptions: AvatarOptions }>('PATCH', '/me/avatar', options),
 

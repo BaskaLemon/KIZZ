@@ -57,8 +57,8 @@ export async function PATCH(request: Request) {
 
   await getDb()
     .update(users)
-    .set({ avatarOptions: options })
+    .set({ avatarOptions: options, equippedItemId: null })
     .where(eq(users.id, user.id));
 
-  return NextResponse.json({ avatarOptions: options });
+  return NextResponse.json({ avatarOptions: options, equippedItemId: null });
 }

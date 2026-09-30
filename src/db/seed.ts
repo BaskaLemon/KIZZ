@@ -92,10 +92,10 @@ async function main() {
         price: 300,
       },
       {
-        name: 'Voxel аватар',
+        name: 'Pixel art аватар',
         category: 'avatarPreset',
         value:
-          'https://api.dicebear.com/10.x/voxel-art/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9',
+          'https://api.dicebear.com/10.x/pixel-art/svg?backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf,d9f2d9',
         price: 300,
       },
       {

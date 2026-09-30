@@ -12,6 +12,7 @@ export function toPublicUser(row: UserRow): User {
     role: row.role,
     createdAt: row.createdAt.toISOString(),
     avatarOptions: row.avatarOptions ?? null,
+    equippedItemId: row.equippedItemId ?? null,
   };
 }
 

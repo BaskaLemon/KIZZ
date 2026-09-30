@@ -34,6 +34,8 @@ export async function loadGameState(
       userId: gamePlayers.userId,
       name: users.name,
       score: gamePlayers.score,
+      avatarOptions: users.avatarOptions,
+      equippedItemId: users.equippedItemId,
     })
     .from(gamePlayers)
     .innerJoin(users, eq(users.id, gamePlayers.userId))
@@ -103,6 +105,13 @@ export async function loadGameState(
     question,
     myAnswer,
     answeredCount,
-    players: playerRows.map((p) => ({ id: p.id, name: p.name, score: p.score })),
+    players: playerRows.map((p) => ({
+      id: p.id,
+      userId: p.userId,
+      name: p.name,
+      score: p.score,
+      avatarOptions: p.avatarOptions,
+      equippedItemId: p.equippedItemId,
+    })),
   };
 }

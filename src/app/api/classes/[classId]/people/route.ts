@@ -24,20 +24,35 @@ export async function GET(request: Request, { params }: Params) {
 
   const db = getDb();
   const [primaryTeacher] = await db
-    .select({ id: users.id, name: users.name })
+    .select({
+      id: users.id,
+      name: users.name,
+      avatarOptions: users.avatarOptions,
+      equippedItemId: users.equippedItemId,
+    })
     .from(users)
     .where(eq(users.id, klass.teacherId))
     .limit(1);
 
   const coTeachers = await db
-    .select({ id: users.id, name: users.name })
+    .select({
+      id: users.id,
+      name: users.name,
+      avatarOptions: users.avatarOptions,
+      equippedItemId: users.equippedItemId,
+    })
     .from(classCoTeachers)
     .innerJoin(users, eq(classCoTeachers.teacherId, users.id))
     .where(eq(classCoTeachers.classId, classId))
     .orderBy(asc(users.name));
 
   const students = await db
-    .select({ id: users.id, name: users.name })
+    .select({
+      id: users.id,
+      name: users.name,
+      avatarOptions: users.avatarOptions,
+      equippedItemId: users.equippedItemId,
+    })
     .from(classMembers)
     .innerJoin(users, eq(classMembers.studentId, users.id))
     .where(eq(classMembers.classId, classId))

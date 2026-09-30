@@ -5,6 +5,7 @@ import {
   AvatarOptions,
   DEFAULT_AVATAR_OPTIONS,
   avatarOptionsForUser,
+  avatarSrcFor,
   generateAvatarUri,
 } from '../lib/avatar';
 import { useAuth } from '../lib/auth';
@@ -32,7 +33,8 @@ export function useAvatar() {
       setSaving(true);
       try {
         const { avatarOptions } = await api.updateAvatar(next);
-        updateUser({ avatarOptions });
+        // Customizing means wearing your own avatar again.
+        updateUser({ avatarOptions, equippedItemId: null });
       } catch (err) {
         toast(
           err instanceof ApiError ? err.message : 'Аватар хадгалахад алдаа гарлаа',
@@ -48,8 +50,8 @@ export function useAvatar() {
   // Show the account's avatar only while actually logged in — logging out
   // reverts the nav avatar to the plain shared default.
   const avatarUri = useMemo(
-    () => generateAvatarUri(user ? options : DEFAULT_AVATAR_OPTIONS),
-    [options, user],
+    () => (user ? avatarSrcFor(user) : generateAvatarUri(DEFAULT_AVATAR_OPTIONS)),
+    [user],
   );
 
   return { options, avatarUri, saveOptions, saving };

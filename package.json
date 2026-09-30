@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@dicebear/big-smile": "^9.4.2",
+    "@dicebear/collection": "^9.4.2",
     "@dicebear/core": "^9.4.2",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",

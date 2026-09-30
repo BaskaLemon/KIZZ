@@ -8,6 +8,7 @@ import {
   timestamp,
   unique,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import type { Question } from '@/lib/types';
 import type { AvatarOptions } from '@/lib/avatar';
@@ -34,6 +35,11 @@ export const users = pgTable('users', {
   // deterministic per-account look (see lib/avatar.ts) in that case. Stored
   // server-side (not localStorage) so it follows the account across devices.
   avatarOptions: jsonb('avatar_options').$type<AvatarOptions | null>(),
+  // A shop avatar the user bought and is currently wearing. When set it wins
+  // over avatarOptions everywhere; null means "use my customized avatar".
+  equippedItemId: uuid('equipped_item_id').references(
+    (): AnyPgColumn => shopItems.id,
+  ),
 });
 
 export type UserRow = typeof users.$inferSelect;

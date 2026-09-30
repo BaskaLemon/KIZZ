@@ -9,6 +9,8 @@ export interface User {
   role: Role;
   createdAt: string;
   avatarOptions: AvatarOptions | null;
+  /** Bought shop avatar currently worn (wins over avatarOptions). */
+  equippedItemId: string | null;
 }
 
 export interface Group {
@@ -82,11 +84,21 @@ export interface GameState {
   myAnswer: number | null;
   /** How many players have answered the current question. */
   answeredCount: number;
-  players: { id: string; name: string; score: number }[];
+  players: {
+    id: string;
+    /** The account behind this player — used to derive a default avatar. */
+    userId: string;
+    name: string;
+    score: number;
+    avatarOptions: AvatarOptions | null;
+    equippedItemId: string | null;
+  }[];
 }
 
 export interface LeaderboardRow {
   id: string;
+  /** Data-URI avatar image. */
+  avatar?: string;
   rank: number;
   name: string;
   score: number;
@@ -157,6 +169,13 @@ export interface AppNotification {
   href: string | null;
   read: boolean;
   createdAt: string;
+}
+
+export interface PersonSummary {
+  id: string;
+  name: string;
+  avatarOptions: AvatarOptions | null;
+  equippedItemId: string | null;
 }
 
 export interface ClassPeople {

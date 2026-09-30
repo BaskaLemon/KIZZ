@@ -176,3 +176,20 @@ export function randomAvatarOptions(): AvatarOptions {
     accessory: pick(ACCESSORIES),
   };
 }
+
+export interface AvatarSubject {
+  id: string;
+  avatarOptions?: AvatarOptions | null;
+  /** A bought shop avatar being worn — wins over avatarOptions. */
+  equippedItemId?: string | null;
+}
+
+/** The image to show for a user: their worn shop avatar (rendered by
+ * /api/avatars/preset, seeded by their id so it is theirs alone), else their
+ * customized avatar, else the deterministic default for their id. */
+export function avatarSrcFor(user: AvatarSubject): string {
+  if (user.equippedItemId) {
+    return `/api/avatars/preset/${user.equippedItemId}?seed=${encodeURIComponent(user.id)}`;
+  }
+  return generateAvatarUri(user.avatarOptions ?? avatarOptionsForUser(user.id));
+}

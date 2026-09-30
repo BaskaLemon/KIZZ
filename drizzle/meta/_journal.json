@@ -78,6 +78,13 @@
       "when": 1790701293858,
       "tag": "0010_quiz_survives_note_delete",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790736252219,
+      "tag": "0011_equipped_avatar",
+      "breakpoints": true
     }
   ]
 }

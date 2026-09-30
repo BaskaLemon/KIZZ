@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { useAvatar } from '@/hooks/useAvatar';
 import { AvatarCustomizer } from '@/components/AvatarCustomizer';
 import { StreakCard } from '@/components/StreakCard';
+import { AvatarPicker } from '@/components/AvatarPicker';
 import { AccountSettings } from '@/components/AccountSettings';
 import { useMyStats } from '@/hooks/useMyStats';
 
@@ -42,7 +43,7 @@ export default function ProfilePage() {
       <Shell activePath="/profile">
         <View narrow>
           <EmptyState title="Эхлээд нэвтэрнэ үү">
-            <p>Профайлаа харахын тулд бүртгэл хийх шаардлагатай.</p>
+            <p>Профайлаа харахын тулд нэвтрэх шаардлагатай.</p>
             <LinkButton href="/login" variant="primary" className="mt-4">
               Нэвтрэх / Бүртгүүлэх →
             </LinkButton>
@@ -114,6 +115,8 @@ export default function ProfilePage() {
         <div className="mt-6">
           <StreakCard />
         </div>
+
+        <AvatarPicker />
 
         <div className="mt-6 grid grid-cols-3 gap-5">
           {STATS.map((stat) => (
