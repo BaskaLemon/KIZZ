@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes';
 import './global.css';
 import { AuthProvider } from '@/lib/auth';
 import { ToastProvider } from '@/lib/toast';
+import { ConfirmProvider } from '@/lib/confirm';
 
 // One rounded, friendly family for headings and body. `cyrillic` matters:
 // without it Mongolian text silently falls back to the system font.
@@ -51,7 +52,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <ConfirmProvider>{children}</ConfirmProvider>
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

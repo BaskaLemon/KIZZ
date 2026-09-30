@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Shuffle, X } from 'lucide-react';
+import { Modal } from '@/components/Modal';
 import {
   ACCESSORIES,
   AvatarOptions,
@@ -114,8 +115,7 @@ export function AvatarCustomizer({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-paper-raised p-6 shadow-lg">
+    <Modal onClose={onClose} label="Аватар тохируулах">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-ink">Аватар тохируулах</h2>
           <button
@@ -209,7 +209,6 @@ export function AvatarCustomizer({
             Цуцлах
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

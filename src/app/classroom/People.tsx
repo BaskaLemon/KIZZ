@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
+import { useConfirm } from '@/lib/confirm';
 import { initials } from '@/lib/initials';
 import type { ApiError, ClassPeople } from '@/lib/types';
 
@@ -46,6 +47,7 @@ export function People({
   isOwner: boolean;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [people, setPeople] = useState<ClassPeople | null>(null);
 
   useEffect(() => {
@@ -67,8 +69,8 @@ export function People({
     }
   }
 
-  function remove(id: string, name: string) {
-    if (!window.confirm(`${name}-г бүлгээс хасах уу?`)) return;
+  async function remove(id: string, name: string) {
+    if (!(await confirm({ message: `${name}-г бүлгээс хасах уу?`, danger: true, confirmLabel: 'Хасах' }))) return;
     void run(() => api.removeMember(classId, id), 'Гишүүн хасагдлаа');
   }
 

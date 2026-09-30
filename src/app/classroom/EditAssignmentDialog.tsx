@@ -6,6 +6,7 @@ import { Button, Field, TextInput } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import type { ApiError, Assignment } from '@/lib/types';
+import { Modal } from '@/components/Modal';
 
 /** `YYYY-MM-DD` of a stored due date, as Ulaanbaatar sees it. */
 function toDateInput(iso: string | null): string {
@@ -41,8 +42,7 @@ export function EditAssignmentDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
-      <div className="w-full max-w-md rounded-3xl border border-line bg-paper-raised p-6 shadow-lg">
+    <Modal onClose={onClose} label="Даалгавар засах" className="max-w-md">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-ink">Даалгавар засах</h2>
           <button
@@ -76,7 +76,6 @@ export function EditAssignmentDialog({
             {saving ? 'Хадгалж байна...' : 'Хадгалах'}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

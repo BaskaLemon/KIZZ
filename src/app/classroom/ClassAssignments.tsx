@@ -7,6 +7,7 @@ import { AttachmentLink } from '@/components/AttachmentLink';
 import { useAppState } from '@/lib/appState';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
+import { useConfirm } from '@/lib/confirm';
 import { dueInfo } from '@/lib/dueDate';
 import { cx } from '@/lib/cx';
 import { AssignmentTaker } from './AssignmentTaker';
@@ -27,6 +28,7 @@ export function ClassAssignments({
   onCreated: () => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [group] = useAppState('group');
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [quizId, setQuizId] = useState(NO_QUIZ);
@@ -80,7 +82,7 @@ export function ClassAssignments({
   async function deleteAssignment(a: Assignment) {
     const n = a.submissionCount ?? 0;
     const warn = n > 0 ? ` ${n} гишүүний илгээлт бас устна.` : '';
-    if (!window.confirm(`"${a.title}" даалгаврыг устгах уу?${warn}`)) return;
+    if (!(await confirm({ message: `"${a.title}" даалгаврыг устгах уу?${warn}`, danger: true }))) return;
     try {
       await api.deleteAssignment(a.id);
       toast('Даалгавар устгагдлаа');

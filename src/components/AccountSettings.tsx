@@ -6,12 +6,14 @@ import { Button, Card, Field, TextInput } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
+import { useConfirm } from '@/lib/confirm';
 import type { ApiError } from '@/lib/types';
 
 /** Name change, password change and account deletion. */
 export function AccountSettings() {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const { user, updateUser, logout } = useAuth();
 
   const [name, setName] = useState(user?.name ?? '');
@@ -56,7 +58,7 @@ export function AccountSettings() {
   }
 
   async function deleteAccount() {
-    if (!window.confirm('Бүртгэлээ бүрмөсөн устгах уу? Таны бүх тэмдэглэл, quiz, таны үүсгэсэн бүлгүүд устна. Үүнийг буцаах боломжгүй.')) return;
+    if (!(await confirm({ message: 'Бүртгэлээ бүрмөсөн устгах уу? Таны бүх тэмдэглэл, quiz, таны үүсгэсэн бүлгүүд устна. Үүнийг буцаах боломжгүй.', danger: true, confirmLabel: 'Бүртгэл устгах' }))) return;
     setDeleteBusy(true);
     try {
       await api.deleteAccount(deletePassword);

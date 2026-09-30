@@ -9,6 +9,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { Tabs } from '@/components/Tabs';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
+import { useConfirm } from '@/lib/confirm';
 import { ClassStream } from './ClassStream';
 import { ClassAssignments } from './ClassAssignments';
 import { ClassNotes } from './ClassNotes';
@@ -45,6 +46,7 @@ export default function ClassDetail({
   initialTab?: TabKey;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const router = useRouter();
   const [klass, setKlass] = useState<Class | null>(null);
   const [assignments, setAssignments] = useState<Assignment[] | null>(null);
@@ -79,7 +81,7 @@ export default function ClassDetail({
 
   async function deleteGroup() {
     if (!klass) return;
-    if (!window.confirm(`"${klass.name}" бүлгийг устгах уу? Бүх тэмдэглэл, quiz, даалгавар, дүн устгагдана. Үүнийг буцаах боломжгүй.`)) return;
+    if (!(await confirm({ message: `"${klass.name}" бүлгийг устгах уу? Бүх тэмдэглэл, quiz, даалгавар, дүн устгагдана. Үүнийг буцаах боломжгүй.`, danger: true }))) return;
     try {
       await api.deleteClass(classId);
       toast('Бүлэг устгагдлаа');
@@ -91,7 +93,7 @@ export default function ClassDetail({
 
   async function leaveGroup() {
     if (!klass) return;
-    if (!window.confirm(`"${klass.name}" бүлгээс гарах уу?`)) return;
+    if (!(await confirm({ message: `"${klass.name}" бүлгээс гарах уу?`, danger: true, confirmLabel: 'Гарах' }))) return;
     try {
       await api.leaveClass(classId);
       toast('Бүлгээс гарлаа');

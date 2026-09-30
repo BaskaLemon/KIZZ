@@ -6,8 +6,10 @@ import { Button, Field, TextInput } from '@/components/ui';
 import { api } from '@/lib/api';
 import { LETTERS } from '@/components/Stage';
 import { cx } from '@/lib/cx';
+import { useConfirm } from '@/lib/confirm';
 import { useToast } from '@/lib/toast';
 import type { ApiError, Question, Quiz } from '@/lib/types';
+import { Modal } from '@/components/Modal';
 
 const MAX_QUESTIONS = 50;
 
@@ -30,11 +32,28 @@ export function QuizEditor({
   onSaved: (quiz: Quiz) => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [title, setTitle] = useState(quiz.title);
   const [questions, setQuestions] = useState<Question[]>(
     quiz.questions.map((q) => ({ ...q, options: [...q.options] })),
   );
   const [saving, setSaving] = useState(false);
+  const [initial] = useState(() => JSON.stringify({ title: quiz.title, questions: quiz.questions }));
+  const dirty = JSON.stringify({ title, questions }) !== initial;
+
+  /** Closing with unsaved edits asks first. */
+  async function requestClose() {
+    if (
+      !dirty ||
+      (await confirm({
+        message: 'Хадгалаагүй өөрчлөлт устана. Хаах уу?',
+        confirmLabel: 'Хаах',
+        danger: true,
+      }))
+    ) {
+      onClose();
+    }
+  }
 
   function update(i: number, patch: Partial<Question>) {
     setQuestions((prev) => prev.map((q, qi) => (qi === i ? { ...q, ...patch } : q)));
@@ -73,13 +92,12 @@ export function QuizEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-4 sm:items-center">
-      <div className="my-auto w-full max-w-2xl rounded-3xl border border-line bg-paper-raised p-5 shadow-lg sm:p-6">
+    <Modal onClose={requestClose} label="Quiz засах" className="max-w-2xl">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-xl font-bold text-ink">Quiz засах</h2>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Хаах"
             className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-ink/5"
           >
@@ -175,15 +193,14 @@ export function QuizEditor({
         </button>
 
         <div className="mt-6 flex items-center justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={requestClose}>
             Болих
           </Button>
           <Button variant="primary" onClick={save} disabled={saving}>
             {saving ? 'Хадгалж байна...' : 'Хадгалах'}
           </Button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

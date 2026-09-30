@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import { FileText, Image as ImageIcon, Loader2, UploadCloud, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
+import { useConfirm } from '@/lib/confirm';
 import type { ApiError, NoteAttachment } from '@/lib/types';
 
 function formatSize(bytes: number): string {
@@ -16,6 +17,7 @@ function formatSize(bytes: number): string {
  * what's stored; auth is a bearer token so downloads go through fetch+Blob. */
 export function NoteAttachments({ noteId }: { noteId: string }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const inputId = useId();
   const [items, setItems] = useState<NoteAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -69,7 +71,7 @@ export function NoteAttachments({ noteId }: { noteId: string }) {
   }
 
   async function remove(item: NoteAttachment) {
-    if (!window.confirm(`"${item.fileName}" файлыг устгах уу?`)) return;
+    if (!(await confirm({ message: `"${item.fileName}" файлыг устгах уу?`, danger: true }))) return;
     try {
       await api.deleteNoteAttachment(item.id);
       setItems((prev) => prev.filter((x) => x.id !== item.id));

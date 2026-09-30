@@ -10,6 +10,7 @@ import { UserAvatarList, type Collaborator } from '@/components/UserAvatarList';
 import { api } from '@/lib/api';
 import { refreshNotifications } from '@/lib/events';
 import { useToast } from '@/lib/toast';
+import { useConfirm } from '@/lib/confirm';
 import type { ApiError, ClassPeople, Note, User } from '@/lib/types';
 
 const AUTOSAVE_DELAY = 900;
@@ -33,6 +34,7 @@ export function ClassNotes({
   currentUser: User;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [people, setPeople] = useState<ClassPeople | null>(null);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -141,7 +143,7 @@ export function ClassNotes({
 
   async function deleteActiveNote() {
     if (!activeNoteId) return;
-    if (!window.confirm(`"${title || 'Тэмдэглэл'}" тэмдэглэлийг устгах уу? Үүнийг буцаах боломжгүй.`)) return;
+    if (!(await confirm({ message: `"${title || 'Тэмдэглэл'}" тэмдэглэлийг устгах уу? Үүнийг буцаах боломжгүй.`, danger: true }))) return;
     try {
       await api.deleteNote(activeNoteId);
       const removed = activeNoteId;

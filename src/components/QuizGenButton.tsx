@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import { refreshNotifications } from '../lib/events';
 import { useToast } from '../lib/toast';
 import type { ApiError, Quiz } from '../lib/types';
+import { Modal } from '@/components/Modal';
 
 const COUNT_OPTIONS = [3, 5, 10, 20];
 
@@ -79,8 +80,7 @@ export function QuizGenButton({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-line bg-paper-raised p-6 shadow-lg">
+        <Modal onClose={close} label="Quiz үүсгэх">
             <div className="flex items-center justify-between">
               <div>
                 <span className="inline-block rounded-full bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-600">
@@ -224,8 +224,7 @@ export function QuizGenButton({
                 </div>
               </>
             )}
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

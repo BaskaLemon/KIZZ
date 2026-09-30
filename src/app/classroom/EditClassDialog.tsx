@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import { isClassColorKey, type ClassColorKey } from '@/lib/classColor';
 import type { ApiError, Class } from '@/lib/types';
+import { Modal } from '@/components/Modal';
 
 interface Draft {
   name: string;
@@ -68,8 +69,7 @@ export function EditClassDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border-2 border-ink bg-paper-raised p-6">
+    <Modal onClose={onClose} label="Бүлгийг тохируулах">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-ink">Бүлгийг тохируулах</h2>
           <button
@@ -129,7 +129,6 @@ export function EditClassDialog({
             Цуцлах
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

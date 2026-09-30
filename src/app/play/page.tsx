@@ -10,12 +10,14 @@ import { Button, Card, EmptyState, LinkButton, TextInput } from '@/components/ui
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
+import { useConfirm } from '@/lib/confirm';
 import type { ApiError, Quiz } from '@/lib/types';
 
 export default function PlayPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [code, setCode] = useState('');
   const [query, setQuery] = useState('');
@@ -44,7 +46,7 @@ export default function PlayPage() {
   }
 
   async function deleteQuiz(quiz: Quiz) {
-    if (!window.confirm(`"${quiz.title}" quiz-ийг устгах уу? Үүнийг буцаах боломжгүй.`)) return;
+    if (!(await confirm({ message: `"${quiz.title}" quiz-ийг устгах уу? Үүнийг буцаах боломжгүй.`, danger: true }))) return;
     try {
       await api.deleteQuiz(quiz.id);
       setQuizzes((prev) => prev.filter((q) => q.id !== quiz.id));

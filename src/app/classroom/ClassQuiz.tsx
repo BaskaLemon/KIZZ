@@ -10,6 +10,7 @@ import { QuizEditor } from '@/components/QuizEditor';
 import { QuizPlayer } from '@/components/QuizPlayer';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
+import { useConfirm } from '@/lib/confirm';
 import type { ApiError, Note, Quiz } from '@/lib/types';
 
 export function ClassQuiz({
@@ -21,6 +22,7 @@ export function ClassQuiz({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [quizzes, setQuizzes] = useState<Quiz[] | null>(null);
   const [notes, setNotes] = useState<Note[] | null>(null);
   const [activeQuiz, setActiveQuiz] = useState<Quiz | null>(null);
@@ -61,7 +63,7 @@ export function ClassQuiz({
   }
 
   async function deleteQuiz(quiz: Quiz) {
-    if (!window.confirm(`"${quiz.title}" quiz-ийг устгах уу? Үүнийг буцаах боломжгүй.`)) return;
+    if (!(await confirm({ message: `"${quiz.title}" quiz-ийг устгах уу? Үүнийг буцаах боломжгүй.`, danger: true }))) return;
     try {
       await api.deleteQuiz(quiz.id);
       setQuizzes((prev) => (prev ? prev.filter((q) => q.id !== quiz.id) : prev));

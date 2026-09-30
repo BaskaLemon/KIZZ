@@ -8,12 +8,14 @@ import { useAuth } from '@/lib/auth';
 import { cx } from '@/lib/cx';
 import { NOTIFICATIONS_REFRESH } from '@/lib/events';
 import type { AppNotification } from '@/lib/types';
+import { useConfirm } from '@/lib/confirm';
 
 const POLL_MS = 60_000;
 
 export function NotificationBell() {
   const { user } = useAuth();
   const router = useRouter();
+  const confirm = useConfirm();
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
@@ -84,7 +86,7 @@ export function NotificationBell() {
   }
 
   async function clearAll() {
-    if (!window.confirm('Бүх мэдэгдлийг устгах уу?')) return;
+    if (!(await confirm({ message: 'Бүх мэдэгдлийг устгах уу?', danger: true, confirmLabel: 'Цэвэрлэх' }))) return;
     setItems([]);
     setUnread(0);
     api.clearNotifications().catch(() => void load());
