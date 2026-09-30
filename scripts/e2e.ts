@@ -12,12 +12,15 @@ async function call(token: string | null, method: string, path: string, body?: u
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body) headers['Content-Type'] = 'application/json';
-  const res = await fetch(BASE + path, { method, headers, body: form ?? (body ? JSON.stringify(body) : undefined) });
+  let res = await fetch(BASE + path, { method, headers, body: form ?? (body ? JSON.stringify(body) : undefined) });
+  // The hosted DB pooler occasionally drops a connection; retry reads once.
+  if (method === 'GET' && res.status >= 500) res = await fetch(BASE + path, { method, headers });
   const ct = res.headers.get('content-type') || '';
   const data = ct.includes('json') ? await res.json().catch(() => null) : null;
   return { status: res.status, data, res };
 }
 const out: Record<string, unknown> = {};
+const balanceOf = async (tok: string) => (await call(tok, 'GET', '/points/balance')).data as { balance: number; xp: number; level: number };
 
 // Quizzes normally come from the AI (slow, needs a key), so the tests create
 // them straight in the DB and exercise the rest of the flow.
@@ -45,6 +48,9 @@ const tokA = r.data?.token; const userA = r.data?.user;
 r = await call(null, 'POST', '/auth/signup', { name: 'E2E Member', email: emailB, password: 'secret12' });
 check('signup B', r.status < 300, r);
 const tokB = r.data?.token; const userB = r.data?.user;
+const emailC = `e2e-c-${stamp}@example.test`, emailD = `e2e-d-${stamp}@example.test`;
+const rc = await call(null, 'POST', '/auth/signup', { name: 'E2E C', email: emailC, password: 'secret12' }); const tokC = rc.data?.token; const userC = rc.data?.user;
+const rd = await call(null, 'POST', '/auth/signup', { name: 'E2E D', email: emailD, password: 'secret12' }); const tokD = rd.data?.token; const userD = rd.data?.user;
 r = await call(null, 'POST', '/auth/signup', { name: 'dup', email: emailA, password: 'secret12' });
 check('duplicate email rejected (409)', r.status === 409, r);
 r = await call(null, 'POST', '/auth/login', { email: emailA, password: 'wrong-pass' });
@@ -57,6 +63,8 @@ r = await call(null, 'GET', '/auth/me'); check('me without token = 401', r.statu
 // --- personal notes
 r = await call(tokA, 'POST', '/me/notes', { title: 'Personal note' });
 check('create personal note', r.status === 201, r); const pn = r.data;
+check('first note grants 20 XP once', (await balanceOf(tokA)).xp === 20, await balanceOf(tokA));
+check('note creation response reports the first-note XP', r.data?.reward?.xp === 20, r.data?.reward);
 const content = 'Мицохондри бол эсийн эрчим хүчний үүсгүүр юм. Хлоропласт нь фотосинтез явуулдаг эсийн хэсэг юм. Рибосом нь уураг нийлэгжүүлдэг эсийн бүтэц юм. Цөм нь удамшлын мэдээллийг хадгалдаг эсийн төв юм. Голжи бие нь уургийг боловсруулж савладаг эсийн бүтэц юм.';
 r = await call(tokA, 'PATCH', `/notes/${pn?.id}`, { content, baseUpdatedAt: pn?.updatedAt });
 check('edit personal note', r.status === 200 && r.data?.content === content, r);
@@ -87,7 +95,9 @@ const quiz = await seedQuiz({ ownerId: userA?.id, noteId: pn?.id });
 r = await call(tokA, 'POST', `/notes/${pn?.id}/generate-quiz`, { count: 3 });
 check('AI quiz (Gemini) works or fails cleanly', r.status === 201 || [501, 502].includes(r.status), r);
 out.aiStatus = r.status; out.aiMsg = r.data?.error;
+const xpBeforeSecondNote = (await balanceOf(tokA)).xp;
 const empty = (await call(tokA, 'POST', '/me/notes', { title: 'short' })).data;
+check('a second note grants no more XP', (await balanceOf(tokA)).xp === xpBeforeSecondNote, await balanceOf(tokA));
 r = await call(tokA, 'POST', `/notes/${empty?.id}/generate-quiz`, { count: 3 }); check('quiz from empty note gives clear 400', r.status === 400, r);
 r = await call(tokA, 'GET', '/me/quizzes'); check('list my quizzes', r.status === 200 && r.data?.length >= 1, r);
 r = await call(tokB, 'GET', `/quizzes/${quiz?.id}`); check('personal quiz hidden from others', r.status === 404, r);
@@ -127,8 +137,9 @@ r = await call(tokB, 'POST', '/notifications/read'); r = await call(tokB, 'GET',
 r = await call(tokA, 'POST', `/assignments/${asg?.id}/submit`, { answers: [] }); check('admin cannot submit (403)', r.status === 403, r);
 r = await call(tokB, 'POST', `/assignments/${asg?.id}/submit`, { answers: gq?.questions.map((q: any) => q.correctIndex) });
 check('member submits, score 100', r.status === 201 && r.data?.score === 100, r);
+check('first quiz completion rewards XP (score/2) and coins (score/10)', r.data?.reward?.xp === 50 && r.data?.reward?.coins === 10, r.data);
 r = await call(tokB, 'POST', `/assignments/${asg?.id}/submit`, { answers: [] }); check('resubmit before the deadline is allowed (score recomputed)', r.status === 200 && r.data?.score === 0, r);
-r = await call(tokB, 'POST', `/assignments/${asg?.id}/submit`, { answers: gq?.questions.map((q: any) => q.correctIndex) }); check('resubmit again, back to 100', r.status === 200 && r.data?.score === 100, r);
+r = await call(tokB, 'POST', `/assignments/${asg?.id}/submit`, { answers: gq?.questions.map((q: any) => q.correctIndex) }); check('resubmit again, back to 100 (and no second reward)', r.status === 200 && r.data?.score === 100 && !r.data?.reward, r);
 r = await call(tokA, 'GET', `/assignments/${asg?.id}/submissions`); check('admin sees submissions', r.status === 200 && r.data?.length === 1, r); const sub = r.data?.[0];
 r = await call(tokB, 'GET', `/assignments/${asg?.id}/submissions`); check('member cannot see all submissions', r.status === 403 || r.status === 404, r.status);
 r = await call(tokA, 'PATCH', `/submissions/${sub?.id}`, { score: 90 }); check('admin grades', r.status === 200, r);
@@ -163,22 +174,92 @@ r = await call(tokA, 'POST', `/classes/${klass?.id}/materials`, undefined, fmat)
 r = await call(tokB, 'GET', `/materials/${mat?.id}`); check('member downloads material', r.status === 200, r.status);
 r = await call(tokB, 'DELETE', `/materials/${mat?.id}`); check('member cannot delete material (403)', r.status === 403, r.status);
 
-// --- live game
+// --- live game + economy
+async function runGame(hostTok: string, quizId: string, players: { tok: string; picks: (number | null)[] }[]) {
+  const g = (await call(hostTok, 'POST', '/games', { quizId })).data;
+  for (const p of players) await call(p.tok, 'POST', `/games/${g.id}/join`);
+  await call(hostTok, 'POST', `/games/${g.id}/start`);
+  for (let q = 0; q < gq.questions.length; q++) {
+    for (const p of players) if (p.picks[q] !== null) await call(p.tok, 'POST', `/games/${g.id}/answer`, { optionIndex: p.picks[q] });
+    await call(hostTok, 'POST', `/games/${g.id}/reveal`);
+    await call(hostTok, 'POST', `/games/${g.id}/next`);
+  }
+  return g;
+}
+const rightAnswers = gq.questions.map((q: any) => q.correctIndex);
+const mostlyWrong = gq.questions.map((q: any, i: number) => (i === 0 ? q.correctIndex : (q.correctIndex + 1) % 4));
+const threePlayers = () => [
+  { tok: tokB, picks: rightAnswers },
+  { tok: tokC, picks: mostlyWrong },
+  { tok: tokD, picks: gq.questions.map(() => null) },
+];
+
 r = await call(tokA, 'POST', '/games', { quizId: gq?.id }); check('host creates game', r.status === 201, r); const game = r.data;
 r = await call(tokB, 'GET', `/games/code/${game?.code}`); check('lookup by code', r.status === 200, r);
+r = await call(tokA, 'POST', `/games/${game?.id}/join`); check('host cannot join their own game (403)', r.status === 403, r);
 r = await call(tokB, 'POST', `/games/${game?.id}/join`); check('join game', r.status < 300, r);
 r = await call(tokB, 'POST', `/games/${game?.id}/start`); check('non-host cannot start (403)', r.status === 403, r);
+r = await call(tokA, 'POST', `/games/${game?.id}/finish`, { results: [] }); check('cannot finish a game that has not started (400)', r.status === 400, r);
 r = await call(tokA, 'POST', `/games/${game?.id}/start`); check('host starts', r.status < 300, r);
 r = await call(tokB, 'POST', `/games/${game?.id}/answer`, { optionIndex: gq?.questions[0].correctIndex }); check('answer', r.status < 300, r);
 r = await call(tokB, 'POST', `/games/${game?.id}/answer`, { optionIndex: 0 }); check('second answer rejected', r.status >= 400, r);
-const total = gq?.questions.length ?? 1;
-for (let q = 0; q < total; q++) {
-  if (q > 0) { r = await call(tokB, 'POST', `/games/${game?.id}/answer`, { optionIndex: gq.questions[q].correctIndex }); }
-  r = await call(tokA, 'POST', `/games/${game?.id}/reveal`); check(`reveal q${q + 1}`, r.status < 300, r);
-  r = await call(tokA, 'POST', `/games/${game?.id}/next`); check(`next after q${q + 1}`, r.status < 300, r);
+
+// forged results must not pay anyone: the server ranks the real players itself
+const aBefore = await balanceOf(tokA); const bBefore = await balanceOf(tokB);
+r = await call(tokA, 'POST', `/games/${game?.id}/finish`, { results: [{ userId: userA?.id, rank: 1, score: 9999 }, { userId: userC?.id, rank: 2, score: 1 }, { userId: userD?.id, rank: 3, score: 1 }] });
+check('early finish ignores forged results', r.status === 200 && r.data?.results?.length === 1 && r.data?.results?.[0]?.userId === userB?.id, r.data);
+check('forged finish paid nobody (host balance unchanged)', (await balanceOf(tokA)).balance === aBefore.balance && (await balanceOf(tokA)).xp === aBefore.xp);
+check('a solo game (below the player minimum) pays nothing', (await balanceOf(tokB)).balance === bBefore.balance && (await balanceOf(tokB)).xp === bBefore.xp, await balanceOf(tokB));
+r = await call(tokA, 'POST', `/games/${game?.id}/finish`, {}); check('finishing twice is rejected (400)', r.status === 400, r);
+r = await call(tokB, 'POST', `/games/${game?.id}/join`); check('cannot join a finished game (409)', r.status === 409, r);
+
+const b1 = await balanceOf(tokB), c1 = await balanceOf(tokC), d1 = await balanceOf(tokD);
+const game3 = await runGame(tokA, gq.id, threePlayers());
+r = await call(tokB, 'GET', `/games/${game3.id}/state`); check('3-player game finishes', r.data?.status === 'finished', r.data?.status);
+const b2 = await balanceOf(tokB), c2 = await balanceOf(tokC), d2 = await balanceOf(tokD);
+check('1st place earns 500 coins + 100 XP', b2.balance - b1.balance === 500 && b2.xp - b1.xp === 100, { b1, b2 });
+check('2nd place earns 300 coins + 60 XP', c2.balance - c1.balance === 300 && c2.xp - c1.xp === 60, { c1, c2 });
+check('a player who never scored earns nothing', d2.balance === d1.balance && d2.xp === d1.xp, { d1, d2 });
+{
+  const rb = (await call(tokB, 'GET', `/games/${game3.id}/state`)).data?.myReward;
+  const rc = (await call(tokC, 'GET', `/games/${game3.id}/state`)).data?.myReward;
+  const rd = (await call(tokD, 'GET', `/games/${game3.id}/state`)).data?.myReward;
+  const rh = (await call(tokA, 'GET', `/games/${game3.id}/state`)).data?.myReward;
+  check('finished game state tells each player what they earned', rb?.coins === 500 && rb?.xp === 100 && rb?.rank === 1 && rc?.coins === 300 && rc?.xp === 60 && rd?.coins === 0 && rd?.xp === 0, { rb, rc, rd });
+  check('the host has no reward entry', rh === null, rh);
+  const spare = await seedQuiz({ ownerId: userA?.id, noteId: pn?.id });
+  const running = (await call(tokA, 'POST', '/games', { quizId: spare.id })).data;
+  check('reward is not exposed while a game is not finished', (await call(tokA, 'GET', `/games/${running.id}/state`)).data?.myReward === null);
 }
-r = await call(tokB, 'GET', `/games/${game?.id}/state`); check('game state final = finished', r.status === 200 && r.data?.status === 'finished', r.data?.status);
-r = await call(tokB, 'GET', '/points/balance'); check('placement points paid to player', (r.data?.balance ?? 0) > 0, r.data);
+
+// --- level-up + notification management
+r = await call(tokB, 'GET', '/notifications');
+check('levelling up creates a notification', r.data?.items?.some((n: any) => /түвшин боллоо/.test(n.title)), r.data?.items?.map((n: any) => n.title));
+{
+  const items = r.data?.items ?? [];
+  const unread = items.find((n: any) => !n.read);
+  if (unread) {
+    check('someone else cannot mark my notification (404)', (await call(tokC, 'PATCH', `/notifications/${unread.id}`)).status === 404);
+    check('someone else cannot delete my notification (404)', (await call(tokC, 'DELETE', `/notifications/${unread.id}`)).status === 404);
+    const before = r.data.unread;
+    check('mark one notification read', (await call(tokB, 'PATCH', `/notifications/${unread.id}`)).status === 200);
+    r = await call(tokB, 'GET', '/notifications'); check('unread count drops by one', r.data?.unread === before - 1, { before, after: r.data?.unread });
+    check('delete one notification', (await call(tokB, 'DELETE', `/notifications/${unread.id}`)).status === 200);
+    r = await call(tokB, 'GET', '/notifications'); check('deleted notification is gone', !r.data?.items?.some((n: any) => n.id === unread.id));
+  }
+  check('bad notification id -> 404', (await call(tokB, 'DELETE', '/notifications/nope')).status === 404);
+  check('clear all notifications', (await call(tokB, 'DELETE', '/notifications')).status === 200);
+  r = await call(tokB, 'GET', '/notifications'); check('nothing left after clearing', r.data?.items?.length === 0 && r.data?.unread === 0, r.data);
+}
+
+await runGame(tokA, gq.id, threePlayers());
+const b3 = await balanceOf(tokB);
+check('second win the same day still pays (up to the cap)', b3.balance - b2.balance === 500, { b2, b3 });
+await runGame(tokA, gq.id, threePlayers());
+const b4 = await balanceOf(tokB);
+check('daily coin cap: no more coins after 1000 from games', b4.balance === b3.balance, { b3, b4 });
+check('XP is not capped', b4.xp - b3.xp === 100, { b3, b4 });
+r = await call(tokB, 'GET', '/points/history'); check('history lists the awards', r.status === 200 && JSON.stringify(r.data).includes('quiz_placement'), r.status);
 
 // --- points / shop / streak
 r = await call(tokB, 'GET', '/points/balance'); check('balance', r.status === 200, r); out.bal = r.data;
@@ -188,6 +269,15 @@ r = await call(tokB, 'POST', '/streak/claim'); check('second claim same day reje
 r = await call(tokB, 'GET', '/shop/items'); check('shop items', r.status === 200 && r.data?.items?.length > 0, r); const items = r.data?.items;
 out.shopItems = items?.length;
 if (items?.length) { r = await call(tokB, 'POST', '/shop/purchase', { itemId: items[0].id }); out.purchase = { status: r.status, err: r.data?.error }; check('purchase clean response (ok or clear error)', r.status < 300 || (r.status === 400 && !!r.data?.error), r); }
+{
+  const me = await balanceOf(tokB);
+  const tier5 = items?.find((it: any) => it.minLevel >= 5);
+  check('shop items carry a minimum level', items?.some((it: any) => it.minLevel > 1) === true, items?.map((it: any) => it.minLevel));
+  if (tier5 && me.level < tier5.minLevel) {
+    r = await call(tokB, 'POST', '/shop/purchase', { itemId: tier5.id });
+    check('a level-locked avatar cannot be bought yet (403)', r.status === 403, r);
+  }
+}
 r = await call(tokB, 'GET', '/inventory'); check('inventory', r.status === 200, r);
 // --- shop avatars: render, equip, clear
 for (const it of items ?? []) {
