@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { assignments, quizzes, submissions } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
 import { UNIQUE_VIOLATION, pgErrorCode } from '@/lib/dbErrors';
+import { classTeacherIds, notifyUsers } from '@/lib/notifications';
 import type { SubmitResult } from '@/lib/types';
 import { isUuid } from '@/lib/uuid';
 
@@ -80,23 +81,55 @@ export async function POST(request: Request, { params }: Params) {
       totalQuestions === 0 ? 0 : Math.round((correctCount / totalQuestions) * 100);
   }
 
-  try {
-    await db.insert(submissions).values({
-      assignmentId,
-      studentId: auth.user.id,
-      answers,
-      score,
-    });
-  } catch (err) {
-    if (pgErrorCode(err) === UNIQUE_VIOLATION) {
+  const [existing] = await db
+    .select({ id: submissions.id })
+    .from(submissions)
+    .where(
+      and(eq(submissions.assignmentId, assignmentId), eq(submissions.studentId, auth.user.id)),
+    )
+    .limit(1);
+
+  if (existing) {
+    // Redoing it is fine until the deadline; after that the result is final.
+    if (assignment.dueAt && assignment.dueAt.getTime() < Date.now()) {
       return NextResponse.json(
-        { error: 'Та энэ даалгаврыг өмнө нь илгээсэн байна.' },
+        { error: 'Хугацаа дууссан тул дахин илгээх боломжгүй.' },
         { status: 409 },
       );
     }
-    throw err;
+    await db
+      .update(submissions)
+      .set({ answers, score, submittedAt: new Date() })
+      .where(eq(submissions.id, existing.id));
+  } else {
+    try {
+      await db.insert(submissions).values({
+        assignmentId,
+        studentId: auth.user.id,
+        answers,
+        score,
+      });
+    } catch (err) {
+      if (pgErrorCode(err) === UNIQUE_VIOLATION) {
+        return NextResponse.json(
+          { error: 'Та энэ даалгаврыг өмнө нь илгээсэн байна.' },
+          { status: 409 },
+        );
+      }
+      throw err;
+    }
+  }
+
+  // Without a quiz nothing is auto-graded, so tell the admins there is
+  // something waiting for a grade.
+  if (!assignment.quizId) {
+    await notifyUsers(await classTeacherIds(assignment.classId), {
+      title: `${auth.user.name} "${assignment.title}" даалгавар илгээлээ`,
+      body: 'Дүн оруулахыг хүлээж байна',
+      href: `/classroom?classId=${assignment.classId}&tab=marks`,
+    });
   }
 
   const result: SubmitResult = { score, correctCount, totalQuestions };
-  return NextResponse.json(result, { status: 201 });
+  return NextResponse.json(result, { status: existing ? 200 : 201 });
 }

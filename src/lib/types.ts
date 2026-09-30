@@ -167,8 +167,26 @@ export interface PersonSummary {
 
 export interface ClassPeople {
   /** Owner first, then any co-admins the owner appointed. */
-  teachers: { id: string; name: string; isPrimary: boolean }[];
-  students: { id: string; name: string }[];
+  teachers: (PersonSummary & { isPrimary: boolean })[];
+  students: PersonSummary[];
+}
+
+export interface GradeCell {
+  score: number | null;
+  submittedAt: string;
+  late: boolean;
+}
+
+/** Admin's members × assignments table. */
+export interface ClassGrades {
+  assignments: { id: string; title: string; dueAt: string | null }[];
+  students: {
+    id: string;
+    name: string;
+    cells: Record<string, GradeCell | null>;
+    /** Mean of graded scores, null if none yet. */
+    average: number | null;
+  }[];
 }
 
 export interface Assignment {
@@ -205,6 +223,8 @@ export interface Submission {
    * the teacher enters a grade manually. */
   score: number | null;
   submittedAt: string;
+  /** Submitted after the due date. Only set by the admin's list endpoint. */
+  late?: boolean;
 }
 
 export interface SubmitResult {

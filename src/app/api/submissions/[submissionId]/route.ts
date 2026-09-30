@@ -5,6 +5,7 @@ import { assignments, submissions, users } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
 import { toSubmission } from '@/lib/mappers';
+import { notifyUsers } from '@/lib/notifications';
 import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ submissionId: string }> };
@@ -22,7 +23,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const db = getDb();
   const [row] = await db
-    .select({ submission: submissions, classId: assignments.classId })
+    .select({
+      submission: submissions,
+      classId: assignments.classId,
+      title: assignments.title,
+    })
     .from(submissions)
     .innerJoin(assignments, eq(submissions.assignmentId, assignments.id))
     .where(eq(submissions.id, submissionId))
@@ -64,6 +69,13 @@ export async function PATCH(request: Request, { params }: Params) {
     .from(users)
     .where(eq(users.id, updated.studentId))
     .limit(1);
+
+  if (row.submission.score !== score) {
+    await notifyUsers([updated.studentId], {
+      title: `Таны "${row.title}" даалгаврын дүн: ${score}%`,
+      href: `/classroom?classId=${row.classId}&tab=marks`,
+    });
+  }
 
   return NextResponse.json(toSubmission(updated, student?.name ?? ''));
 }

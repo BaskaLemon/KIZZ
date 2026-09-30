@@ -3,16 +3,25 @@
 import { useState } from 'react';
 import { Button, Card, EmptyState } from '@/components/ui';
 import { Gradebook } from './Gradebook';
+import { GradesMatrix } from './GradesMatrix';
 import type { Assignment } from '@/lib/types';
 
 export function ClassMarks({
+  classId,
   assignments,
   isTeacher,
 }: {
+  classId: string;
   assignments: Assignment[];
   isTeacher: boolean;
 }) {
   const [openGradebook, setOpenGradebook] = useState<string | null>(null);
+  const mine = assignments
+    .map((a) => a.mySubmission?.score)
+    .filter((s): s is number => typeof s === 'number');
+  const average = mine.length
+    ? Math.round(mine.reduce((sum, s) => sum + s, 0) / mine.length)
+    : null;
 
   return (
     <div>
@@ -23,6 +32,11 @@ export function ClassMarks({
         </EmptyState>
       ) : isTeacher ? (
         <div className="flex flex-col gap-3">
+          <Card className="rounded-lg">
+            <h3 className="text-base">Нэгдсэн хүснэгт</h3>
+            <GradesMatrix classId={classId} />
+          </Card>
+          <h3 className="mt-2 text-base">Даалгавар бүрээр</h3>
           {assignments.map((a) => (
             <Card key={a.id} className="rounded-lg">
               <div className="flex items-center justify-between gap-3">
@@ -47,6 +61,11 @@ export function ClassMarks({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
+          {average !== null && (
+            <p className="mb-1 text-[14px] font-semibold text-ink-soft">
+              Миний дундаж дүн: <span className="text-ink">{average}%</span>
+            </p>
+          )}
           {assignments.map((a) => (
             <Card
               key={a.id}

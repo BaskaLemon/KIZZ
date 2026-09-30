@@ -3,10 +3,12 @@ import { and, count, desc, eq, isNull } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { notifications } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
+import { ensureDueReminders } from '@/lib/reminders';
 
 export async function GET(request: Request) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
+  await ensureDueReminders(auth.user.id);
   const db = getDb();
 
   const [rows, [{ unread }]] = await Promise.all([

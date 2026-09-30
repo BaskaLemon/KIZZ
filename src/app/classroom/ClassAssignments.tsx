@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, ClipboardList, Plus, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Button, Card, EmptyState, Field, TextInput } from '@/components/ui';
 import { AttachmentLink } from '@/components/AttachmentLink';
 import { useAppState } from '@/lib/appState';
@@ -10,6 +10,7 @@ import { useToast } from '@/lib/toast';
 import { dueInfo } from '@/lib/dueDate';
 import { cx } from '@/lib/cx';
 import { AssignmentTaker } from './AssignmentTaker';
+import { EditAssignmentDialog } from './EditAssignmentDialog';
 import type { ApiError, Assignment, Quiz } from '@/lib/types';
 
 const NO_QUIZ = '';
@@ -74,6 +75,8 @@ export function ClassAssignments({
     }
   }
 
+  const [editing, setEditing] = useState<Assignment | null>(null);
+
   async function deleteAssignment(a: Assignment) {
     const n = a.submissionCount ?? 0;
     const warn = n > 0 ? ` ${n} гишүүний илгээлт бас устна.` : '';
@@ -89,6 +92,16 @@ export function ClassAssignments({
 
   return (
     <div>
+      {editing && (
+        <EditAssignmentDialog
+          assignment={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            onCreated();
+          }}
+        />
+      )}
       {isTeacher && (
         <Button
           variant={formOpen ? 'ghost' : 'primary'}
@@ -199,6 +212,15 @@ export function ClassAssignments({
                   <span className="shrink-0 rounded-full bg-paper px-3 py-1.5 text-[13px] font-semibold text-ink-soft">
                     {a.submissionCount ?? 0} илгээсэн
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(a)}
+                    aria-label={`${a.title} засах`}
+                    title="Засах"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-ink/5 hover:text-ink"
+                  >
+                    <Pencil size={16} />
+                  </button>
                   <button
                     type="button"
                     onClick={() => deleteAssignment(a)}

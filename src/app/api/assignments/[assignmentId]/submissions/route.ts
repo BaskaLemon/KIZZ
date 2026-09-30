@@ -49,8 +49,9 @@ export async function GET(request: Request, { params }: Params) {
     .orderBy(desc(submissions.submittedAt));
 
   return NextResponse.json(
-    rows.map(({ submission, studentName }) =>
-      toSubmission(submission, studentName),
-    ),
+    rows.map(({ submission, studentName }) => ({
+      ...toSubmission(submission, studentName),
+      late: !!assignment.dueAt && submission.submittedAt > assignment.dueAt,
+    })),
   );
 }

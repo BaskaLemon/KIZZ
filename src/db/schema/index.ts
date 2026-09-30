@@ -7,6 +7,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
@@ -123,20 +124,27 @@ export type NoteAttachmentRow = typeof noteAttachments.$inferSelect;
 
 // --- Notifications --------------------------------------------------------
 
-export const notifications = pgTable('notifications', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  body: text('body').notNull().default(''),
-  // App-relative link the notification opens, e.g. /classroom?classId=...
-  href: text('href'),
-  readAt: timestamp('read_at', { withTimezone: true }),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    body: text('body').notNull().default(''),
+    // App-relative link the notification opens, e.g. /classroom?classId=...
+    href: text('href'),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    // Set for generated reminders so the same one is only ever created once
+    // per user (e.g. `due:<assignmentId>`); null for ordinary notifications.
+    dedupeKey: text('dedupe_key'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+},
+  (table) => [uniqueIndex('notifications_user_dedupe_idx').on(table.userId, table.dedupeKey)],
+);
 
 export type NotificationRow = typeof notifications.$inferSelect;
 

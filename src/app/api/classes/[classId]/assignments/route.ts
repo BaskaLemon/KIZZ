@@ -7,6 +7,7 @@ import { canAccessQuiz, getClassMembership } from '@/lib/access';
 import { toAssignment } from '@/lib/mappers';
 import { classStudentIds, notifyUsers } from '@/lib/notifications';
 import { fileHasValidSignature } from '@/lib/fileSignature';
+import { parseDueInput } from '@/lib/dueDate';
 import { insertMaterial, validateMaterialFile } from '@/lib/materials';
 import { isUuid } from '@/lib/uuid';
 
@@ -108,7 +109,10 @@ export async function POST(request: Request, { params }: Params) {
       ? titleField.trim()
       : 'Даалгавар';
   const dueAtField = formData.get('dueAt');
-  const dueAt = typeof dueAtField === 'string' && dueAtField ? dueAtField : null;
+  const dueAt = parseDueInput(dueAtField);
+  if (dueAt === undefined) {
+    return NextResponse.json({ error: 'Хугацаа буруу байна.' }, { status: 400 });
+  }
   const quizIdField = formData.get('quizId');
   const quizId = typeof quizIdField === 'string' && quizIdField ? quizIdField : null;
 
@@ -173,13 +177,13 @@ export async function POST(request: Request, { params }: Params) {
       quizId,
       materialId,
       title,
-      dueAt: dueAt ? new Date(dueAt) : null,
+      dueAt,
     })
     .returning();
 
   await notifyUsers(await classStudentIds(classId), {
     title: `Шинэ даалгавар: ${title}`,
-    body: `${klass.name} ангид${dueAt ? ' — хугацаа: ' + new Date(dueAt).toLocaleDateString('mn-MN') : ''}`,
+    body: `${klass.name} ангид${dueAt ? ' — хугацаа: ' + dueAt.toLocaleDateString('mn-MN', { timeZone: 'Asia/Ulaanbaatar' }) : ''}`,
     href: `/classroom?classId=${classId}`,
   });
 

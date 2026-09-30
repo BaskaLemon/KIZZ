@@ -14,12 +14,15 @@ function scoreClass(score: number) {
 function GradeEntry({
   submission,
   onGraded,
+  onCancel,
 }: {
   submission: Submission;
   onGraded: (updated: Submission) => void;
+  /** Present when correcting an existing grade. */
+  onCancel?: () => void;
 }) {
   const toast = useToast();
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(submission.score === null ? '' : String(submission.score));
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -58,6 +61,15 @@ function GradeEntry({
       >
         Хадгалах
       </button>
+      {onCancel && (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full border-2 border-line px-3 py-1 text-[13px] font-semibold text-ink-soft hover:border-ink"
+        >
+          Болих
+        </button>
+      )}
     </div>
   );
 }
@@ -65,6 +77,7 @@ function GradeEntry({
 export function Gradebook({ assignmentId }: { assignmentId: string }) {
   const toast = useToast();
   const [submissions, setSubmissions] = useState<Submission[] | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -96,8 +109,9 @@ export function Gradebook({ assignmentId }: { assignmentId: string }) {
 
   function handleGraded(updated: Submission) {
     setSubmissions((prev) =>
-      prev ? prev.map((s) => (s.id === updated.id ? updated : s)) : prev,
+      prev ? prev.map((s) => (s.id === updated.id ? { ...s, ...updated, late: s.late } : s)) : prev,
     );
+    setEditingId(null);
   }
 
   return (
@@ -129,18 +143,30 @@ export function Gradebook({ assignmentId }: { assignmentId: string }) {
                 {s.studentName}
               </td>
               <td className="border-b-2 border-line px-3 py-2.5">
-                {s.score === null ? (
-                  <GradeEntry submission={s} onGraded={handleGraded} />
+                {s.score === null || editingId === s.id ? (
+                  <GradeEntry
+                    submission={s}
+                    onGraded={handleGraded}
+                    onCancel={s.score === null ? undefined : () => setEditingId(null)}
+                  />
                 ) : (
-                  <span
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(s.id)}
+                    title="Дүнг засах"
                     className={`inline-block rounded-full px-2.5 py-0.75 text-[13px] font-bold ${scoreClass(s.score)}`}
                   >
                     {s.score}%
-                  </span>
+                  </button>
                 )}
               </td>
               <td className="border-b-2 border-line px-3 py-2.5">
                 {new Date(s.submittedAt).toLocaleString()}
+                {s.late && (
+                  <span className="ml-2 rounded-full bg-coral/15 px-2 py-0.5 text-[12px] font-semibold text-coral">
+                    Хоцорсон
+                  </span>
+                )}
               </td>
             </tr>
           ))}

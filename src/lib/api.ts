@@ -7,7 +7,7 @@ import type {
   BalanceInfo,
   ClaimResult,
   Class,
-  ClassGroup,
+  ClassGrades,
   ClassPeople,
   GameSession,
   GameState,
@@ -205,6 +205,12 @@ export const api = {
     downloadFile(`/note-attachments/${attachmentId}`),
   deleteNoteAttachment: (attachmentId: string) =>
     request('DELETE', `/note-attachments/${attachmentId}`),
+  updateAssignment: (
+    assignmentId: string,
+    patch: { title?: string; dueAt?: string | null },
+  ) => request<Assignment>('PATCH', `/assignments/${assignmentId}`, patch),
+  getGrades: (classId: string) =>
+    request<ClassGrades>('GET', `/classes/${classId}/grades`),
   deleteAssignment: (assignmentId: string) =>
     request('DELETE', `/assignments/${assignmentId}`),
   deleteClass: (classId: string) => request('DELETE', `/classes/${classId}`),

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui';
 import { AttachmentLink } from '@/components/AttachmentLink';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
+import { dueInfo } from '@/lib/dueDate';
 import type { ApiError, AssignmentDetail, SubmitResult } from '@/lib/types';
 
 export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
@@ -12,6 +13,7 @@ export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
   const [assignment, setAssignment] = useState<AssignmentDetail | null>(null);
   const [answers, setAnswers] = useState<(number | null)[]>([]);
   const [result, setResult] = useState<SubmitResult | null>(null);
+  const [retaking, setRetaking] = useState(false);
 
   useEffect(() => {
     api.getAssignment(assignmentId).then((a) => {
@@ -22,7 +24,9 @@ export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
 
   if (!assignment) return null;
 
-  if (assignment.mySubmission) {
+  const { overdue } = dueInfo(assignment.dueAt);
+
+  if (assignment.mySubmission && !retaking) {
     return (
       <>
         <p className="font-bold text-violet">
@@ -38,6 +42,23 @@ export function AssignmentTaker({ assignmentId }: { assignmentId: string }) {
           <div className="mt-2">
             <AttachmentLink materialId={assignment.materialId} />
           </div>
+        )}
+        {overdue ? (
+          <p className="mt-2 text-[13px] text-ink-soft">
+            Хугацаа дууссан тул дахин илгээх боломжгүй.
+          </p>
+        ) : (
+          <Button
+            variant="ghost"
+            className="mt-3 self-start"
+            onClick={() => {
+              setAnswers(new Array(assignment.quiz?.questions.length ?? 0).fill(null));
+              setResult(null);
+              setRetaking(true);
+            }}
+          >
+            Дахин илгээх
+          </Button>
         )}
       </>
     );
