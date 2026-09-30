@@ -166,31 +166,20 @@ export const api = {
   createClass: (payload: {
     name: string;
     color?: string;
-    section?: string;
-    level?: string;
-    subject?: string;
-    room?: string;
+    description?: string;
   }) => request<Class>('POST', '/classes', payload),
   updateClass: (
     id: string,
     patch: Partial<{
       name: string;
       color: string;
-      section: string | null;
-      level: string | null;
-      subject: string | null;
-      room: string | null;
-      groupId: string | null;
+      description: string | null;
     }>,
   ) => request<Class>('PATCH', `/classes/${id}`, patch),
   // Teachers can also join another teacher's class by code, as a
   // full co-teacher — same call, the backend branches on role.
   joinClass: (code: string) => request<Class>('POST', '/classes/join', { code }),
   getClass: (id: string) => request<Class>('GET', `/classes/${id}`),
-  listClassGroups: () => request<ClassGroup[]>('GET', '/class-groups'),
-  createClassGroup: (name: string) =>
-    request<ClassGroup>('POST', '/class-groups', { name }),
-  deleteClassGroup: (id: string) => request('DELETE', `/class-groups/${id}`),
   getPeople: (classId: string) =>
     request<ClassPeople>('GET', `/classes/${classId}/people`),
   setMemberAdmin: (classId: string, userId: string, admin: boolean) =>

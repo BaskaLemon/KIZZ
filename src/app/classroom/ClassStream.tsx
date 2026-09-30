@@ -17,10 +17,6 @@ export function ClassStream({
   isTeacher: boolean;
   onEdit: () => void;
 }) {
-  const metaLine = [klass.subject, klass.section, klass.level, klass.room]
-    .filter(Boolean)
-    .join(' · ');
-
   return (
     <div className="flex flex-col gap-4">
       <div
@@ -35,8 +31,10 @@ export function ClassStream({
               <h2 className="truncate text-3xl font-extrabold leading-tight">
                 {klass.name}
               </h2>
-              {metaLine && (
-                <p className="mt-1 text-[14px] text-white/80">{metaLine}</p>
+              {klass.description && (
+                <p className="mt-1 max-w-prose whitespace-pre-line text-[14px] text-white/85">
+                  {klass.description}
+                </p>
               )}
               <p className="mt-1.5 flex items-center gap-1.5 text-white/85">
                 {isTeacher ? (

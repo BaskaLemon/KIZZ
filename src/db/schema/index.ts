@@ -241,22 +241,6 @@ export type GameAnswerRow = typeof gameAnswers.$inferSelect;
 
 // --- Classroom ------------------------------------------------------------
 
-// A teacher's own folder for organizing their class list (e.g. "Grade 10",
-// "Fall term"). Purely organizational — owned by whichever teacher created
-// it, not shared. A class belongs to at most one group.
-export const classGroups = pgTable('class_groups', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  teacherId: uuid('teacher_id')
-    .notNull()
-    .references(() => users.id),
-  name: text('name').notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-export type ClassGroupRow = typeof classGroups.$inferSelect;
-
 export const classes = pgTable('classes', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
@@ -270,16 +254,10 @@ export const classes = pgTable('classes', {
   // it doesn't recognize.
   color: text('color').notNull().default('blue'),
   // Optional descriptive metadata, all editable after creation — mirrors
-  // Google Classroom's "Create class" dialog fields.
-  section: text('section'),
-  level: text('level'),
-  subject: text('subject'),
-  room: text('room'),
-  // Which folder this class sits in on its owner's class list. Set null
-  // automatically if that group is deleted.
-  groupId: uuid('group_id').references(() => classGroups.id, {
-    onDelete: 'set null',
-  }),
+  // Free-text blurb shown on the group's overview (what it's for, when it
+  // meets, ...). Replaced the old section/level/subject/room fields.
+  description: text('description'),
+
   // Null = active. Archiving hides a class from the default class list and
   // blocks new assignments/submissions/materials, without deleting it.
   archivedAt: timestamp('archived_at', { withTimezone: true }),

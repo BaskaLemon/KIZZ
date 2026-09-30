@@ -8,6 +8,8 @@ import { toClass } from '@/lib/mappers';
 import { isClassColorKey, randomClassColor } from '@/lib/classColor';
 import { optionalText } from '@/lib/text';
 
+const MAX_DESCRIPTION = 500;
+
 export async function POST(request: Request) {
   const auth = await requireUser(request);
   if (auth.error) return auth.error;
@@ -21,10 +23,13 @@ export async function POST(request: Request) {
     );
   }
   const color = isClassColorKey(body?.color) ? body.color : randomClassColor();
-  const section = optionalText(body?.section);
-  const level = optionalText(body?.level);
-  const subject = optionalText(body?.subject);
-  const room = optionalText(body?.room);
+  const description = optionalText(body?.description);
+  if (description && description.length > MAX_DESCRIPTION) {
+    return NextResponse.json(
+      { error: `Тайлбар ${MAX_DESCRIPTION} тэмдэгтээс ихгүй байх ёстой.` },
+      { status: 400 },
+    );
+  }
 
   const db = getDb();
   const code = await generateUniqueCode(async (candidate) => {
@@ -43,10 +48,7 @@ export async function POST(request: Request) {
       code,
       teacherId: auth.user.id,
       color,
-      section,
-      level,
-      subject,
-      room,
+      description,
     })
     .returning();
 

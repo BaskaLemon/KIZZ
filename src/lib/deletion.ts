@@ -5,7 +5,6 @@ import {
   classCoTeachers,
   classMaterials,
   classMembers,
-  classGroups,
   classes,
   dailyStreaks,
   gameAnswers,
@@ -145,7 +144,6 @@ export async function deleteUserCascade(userId: string) {
     await tx.delete(submissions).where(eq(submissions.studentId, userId));
     await tx.delete(classMembers).where(eq(classMembers.studentId, userId));
     await tx.delete(classCoTeachers).where(eq(classCoTeachers.teacherId, userId));
-    await tx.delete(classGroups).where(eq(classGroups.teacherId, userId));
     await tx.delete(pointTransactions).where(eq(pointTransactions.userId, userId));
     await tx.delete(userInventory).where(eq(userInventory.userId, userId));
     await tx.delete(dailyStreaks).where(eq(dailyStreaks.userId, userId));

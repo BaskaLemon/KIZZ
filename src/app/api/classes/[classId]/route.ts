@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { and, count, eq } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { classGroups, classMembers, classes, users } from '@/db/schema';
+import { classMembers, classes, users } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { getClassMembership } from '@/lib/access';
 import { deleteClassCascade } from '@/lib/deletion';
@@ -10,19 +10,9 @@ import { isClassColorKey } from '@/lib/classColor';
 import { optionalText } from '@/lib/text';
 import { isUuid } from '@/lib/uuid';
 
-type Params = { params: Promise<{ classId: string }> };
+const MAX_DESCRIPTION = 500;
 
-async function resolveGroupName(
-  groupId: string | null,
-): Promise<string | null> {
-  if (!groupId) return null;
-  const [group] = await getDb()
-    .select({ name: classGroups.name })
-    .from(classGroups)
-    .where(eq(classGroups.id, groupId))
-    .limit(1);
-  return group?.name ?? null;
-}
+type Params = { params: Promise<{ classId: string }> };
 
 export async function GET(request: Request, { params }: Params) {
   const auth = await requireUser(request);
@@ -56,11 +46,8 @@ export async function GET(request: Request, { params }: Params) {
     .from(classMembers)
     .where(eq(classMembers.classId, classId));
 
-  const groupName = await resolveGroupName(klass.groupId);
-
   return NextResponse.json(toClass(klass, teacherName, {
       memberCount,
-      groupName,
       canManage: isTeacher,
     }));
 }
@@ -108,34 +95,15 @@ export async function PATCH(request: Request, { params }: Params) {
     }
     patch.color = body.color;
   }
-  if ('section' in body) patch.section = optionalText(body.section);
-  if ('level' in body) patch.level = optionalText(body.level);
-  if ('subject' in body) patch.subject = optionalText(body.subject);
-  if ('room' in body) patch.room = optionalText(body.room);
-  if ('groupId' in body) {
-    if (body.groupId === null || body.groupId === '') {
-      patch.groupId = null;
-    } else if (typeof body.groupId === 'string') {
-      // Only a group the requesting user created can be assigned — groups
-      // are per-teacher, not shared, even between co-teachers of this class.
-      const [owned] = await db
-        .select({ id: classGroups.id })
-        .from(classGroups)
-        .where(
-          and(
-            eq(classGroups.id, body.groupId),
-            eq(classGroups.teacherId, auth.user.id),
-          ),
-        )
-        .limit(1);
-      if (!owned) {
-        return NextResponse.json(
-          { error: 'Бүлэг олдсонгүй.' },
-          { status: 400 },
-        );
-      }
-      patch.groupId = body.groupId;
+  if ('description' in body) {
+    const description = optionalText(body.description);
+    if (description && description.length > MAX_DESCRIPTION) {
+      return NextResponse.json(
+        { error: `Тайлбар ${MAX_DESCRIPTION} тэмдэгтээс ихгүй байх ёстой.` },
+        { status: 400 },
+      );
     }
+    patch.description = description;
   }
 
   const [row] =
@@ -152,8 +120,6 @@ export async function PATCH(request: Request, { params }: Params) {
     .from(classMembers)
     .where(eq(classMembers.classId, classId));
 
-  const groupName = await resolveGroupName(row.groupId);
-
   const [owner] = await db
     .select({ name: users.name })
     .from(users)
@@ -163,7 +129,6 @@ export async function PATCH(request: Request, { params }: Params) {
   return NextResponse.json(
     toClass(row, owner?.name ?? '', {
       memberCount,
-      groupName,
       canManage: true,
     }),
   );

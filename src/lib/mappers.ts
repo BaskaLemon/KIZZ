@@ -1,6 +1,5 @@
 import type {
   AssignmentRow,
-  ClassGroupRow,
   ClassMaterialRow,
   ClassRow,
   GameSessionRow,
@@ -13,7 +12,6 @@ import type {
 import type {
   Assignment,
   Class,
-  ClassGroup,
   GameSession,
   Group,
   Material,
@@ -67,7 +65,6 @@ export const toClass = (
   teacherName: string,
   extra?: {
     memberCount?: number;
-    groupName?: string | null;
     canManage?: boolean;
   },
 ): Class => ({
@@ -77,21 +74,10 @@ export const toClass = (
   teacherId: row.teacherId,
   teacherName,
   color: row.color,
-  section: row.section,
-  level: row.level,
-  subject: row.subject,
-  room: row.room,
-  groupId: row.groupId,
-  groupName: extra?.groupName ?? null,
+  description: row.description,
   createdAt: row.createdAt.toISOString(),
   memberCount: extra?.memberCount,
   canManage: extra?.canManage,
-});
-
-export const toClassGroup = (row: ClassGroupRow): ClassGroup => ({
-  id: row.id,
-  name: row.name,
-  createdAt: row.createdAt.toISOString(),
 });
 
 /** `row` must omit the `data` column (see the materials routes) — list

@@ -7,29 +7,19 @@ import { ColorPicker } from '@/components/ColorPicker';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import { isClassColorKey, type ClassColorKey } from '@/lib/classColor';
-import type { ApiError, Class, ClassGroup } from '@/lib/types';
-
-const NO_FOLDER = '';
+import type { ApiError, Class } from '@/lib/types';
 
 interface Draft {
   name: string;
-  section: string;
-  level: string;
-  subject: string;
-  room: string;
+  description: string;
   color: ClassColorKey;
-  groupId: string;
 }
 
 function toDraft(klass: Class): Draft {
   return {
     name: klass.name,
-    section: klass.section ?? '',
-    level: klass.level ?? '',
-    subject: klass.subject ?? '',
-    room: klass.room ?? '',
+    description: klass.description ?? '',
     color: isClassColorKey(klass.color) ? klass.color : 'blue',
-    groupId: klass.groupId ?? NO_FOLDER,
   };
 }
 
@@ -47,8 +37,6 @@ export function EditClassDialog({
   const toast = useToast();
   const [draft, setDraft] = useState<Draft>(() => toDraft(klass));
   const [saving, setSaving] = useState(false);
-  const [folders, setFolders] = useState<ClassGroup[]>([]);
-  const [newFolderName, setNewFolderName] = useState('');
 
   useEffect(() => {
     // Re-seed the form each time the dialog opens.
@@ -56,28 +44,7 @@ export function EditClassDialog({
     if (open) setDraft(toDraft(klass));
   }, [open, klass]);
 
-  useEffect(() => {
-    if (open) {
-      api
-        .listClassGroups()
-        .then(setFolders)
-        .catch(() => setFolders([]));
-    }
-  }, [open]);
-
   if (!open) return null;
-
-  async function createFolder() {
-    if (!newFolderName.trim()) return;
-    try {
-      const folder = await api.createClassGroup(newFolderName.trim());
-      setFolders((prev) => [...prev, folder]);
-      setDraft((d) => ({ ...d, groupId: folder.id }));
-      setNewFolderName('');
-    } catch (err) {
-      toast((err as ApiError).payload?.error || 'Хавтас үүсгэхэд алдаа гарлаа', 'error');
-    }
-  }
 
   async function save() {
     if (!draft.name.trim()) {
@@ -89,11 +56,7 @@ export function EditClassDialog({
       const updated = await api.updateClass(klass.id, {
         name: draft.name.trim(),
         color: draft.color,
-        section: draft.section.trim() || null,
-        level: draft.level.trim() || null,
-        subject: draft.subject.trim() || null,
-        room: draft.room.trim() || null,
-        groupId: draft.groupId || null,
+        description: draft.description.trim() || null,
       });
       onSaved(updated);
       onClose();
@@ -127,62 +90,17 @@ export function EditClassDialog({
               placeholder="ж: Англи хэлний бүлэг"
             />
           </Field>
-          <Field label="Дэд бүлэг">
-            <TextInput
-              value={draft.section}
-              onChange={(e) => setDraft({ ...draft, section: e.target.value })}
-            />
-          </Field>
-          <Field label="Түвшин">
-            <TextInput
-              value={draft.level}
-              onChange={(e) => setDraft({ ...draft, level: e.target.value })}
-            />
-          </Field>
-          <Field label="Сэдэв">
-            <TextInput
-              value={draft.subject}
-              onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-            />
-          </Field>
-          <Field label="Байршил">
-            <TextInput
-              value={draft.room}
-              onChange={(e) => setDraft({ ...draft, room: e.target.value })}
+          <Field label="Тайлбар (заавал биш)">
+            <textarea
+              value={draft.description}
+              maxLength={500}
+              rows={3}
+              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+              placeholder="ж: Даваа, Лхагва 19:00 — англи хэлний ярианы дадлага"
+              className="w-full resize-y rounded-sm border-2 border-line bg-transparent p-2.5 text-[15px] text-ink outline-none focus:border-violet"
             />
           </Field>
         </div>
-
-        <Field label="Хавтас (бүлгүүдээ ангилах)">
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="flex-1 rounded-sm border-2 border-line p-2.5"
-              value={draft.groupId}
-              onChange={(e) => setDraft({ ...draft, groupId: e.target.value })}
-            >
-              <option value={NO_FOLDER}>Хавтасгүй</option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-            <TextInput
-              className="flex-1"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && createFolder()}
-              placeholder="Шинэ хавтасны нэр"
-            />
-            <button
-              type="button"
-              onClick={createFolder}
-              className="rounded-sm border-2 border-line px-3 py-2.5 text-[13px] font-semibold text-ink hover:border-ink"
-            >
-              Нэмэх
-            </button>
-          </div>
-        </Field>
 
         <div className="mt-2">
           <p className="mb-1.5 text-[13px] font-semibold text-ink-soft">

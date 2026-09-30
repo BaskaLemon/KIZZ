@@ -75,30 +75,6 @@ export default function ClassList({ user }: { user: User }) {
     [allClasses, query],
   );
 
-  // Folders are the owner's organizational tool; classes joined from others
-  // come without a folder and land in the ungrouped list.
-  const grouped = useMemo(() => {
-    if (!classes || !classes.some((c) => c.groupId)) return null;
-    const byGroup = new Map<string, { name: string; classes: Class[] }>();
-    const ungrouped: Class[] = [];
-    for (const c of classes) {
-      if (c.groupId) {
-        const bucket = byGroup.get(c.groupId) ?? {
-          name: c.groupName ?? 'Хавтас',
-          classes: [],
-        };
-        bucket.classes.push(c);
-        byGroup.set(c.groupId, bucket);
-      } else {
-        ungrouped.push(c);
-      }
-    }
-    return {
-      folders: [...byGroup.entries()].map(([id, v]) => ({ id, ...v })),
-      ungrouped,
-    };
-  }, [classes]);
-
   async function createClass() {
     if (!className.trim()) return toast('Бүлгийн нэрээ оруулна уу', 'error');
     try {
@@ -246,31 +222,6 @@ export default function ClassList({ user }: { user: User }) {
             </p>
           </EmptyState>
         </>
-      ) : grouped ? (
-        <div className="flex flex-col gap-6">
-          {grouped.folders.map((folder) => (
-            <div key={folder.id}>
-              <h3 className="mb-2.5 text-lg">{folder.name}</h3>
-              <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-                {folder.classes.map((c) => (
-                  <ClassCard key={c.id} user={user} c={c} />
-                ))}
-              </div>
-            </div>
-          ))}
-          {grouped.ungrouped.length > 0 && (
-            <div>
-              <h3 className="mb-2.5 text-lg">
-                {grouped.folders.length > 0 ? 'Бусад бүлэг' : 'Миний бүлгүүд'}
-              </h3>
-              <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-                {grouped.ungrouped.map((c) => (
-                  <ClassCard key={c.id} user={user} c={c} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       ) : (
         <>
           <h3 className="mb-2.5 text-lg">Миний бүлгүүд</h3>

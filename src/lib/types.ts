@@ -120,26 +120,13 @@ export interface Class {
   teacherName: string;
   /** One of CLASS_COLORS' keys, see src/lib/classColor.ts. */
   color: string;
-  section: string | null;
-  level: string | null;
-  subject: string | null;
-  room: string | null;
-  /** The folder this class sits in on its owner's class list, if any. */
-  groupId: string | null;
-  groupName: string | null;
+  description: string | null;
   createdAt: string;
   /** Enrolled student count. Only populated by GET /classes/:id. */
   memberCount?: number;
   /** Whether the caller administers this group (owner/co-admin). Only
    * populated by GET /classes/:id. */
   canManage?: boolean;
-}
-
-/** A teacher's own folder for organizing their class list. */
-export interface ClassGroup {
-  id: string;
-  name: string;
-  createdAt: string;
 }
 
 export interface Material {
