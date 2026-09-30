@@ -5,15 +5,17 @@ import { useRouter } from 'next/navigation';
 import {
   AnswerGrid,
   AnswerOption,
-  AnswerBars,
   Leaderboard,
+  PlayerGrid,
   RoomCodeCard,
   StageHeader,
   StageScreen,
   TimerRing,
 } from '@/components/Stage';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
+import { avatarSrcFor } from '@/lib/avatar';
 import { useToast } from '@/lib/toast';
 import type { ApiError, GameState, LeaderboardRow } from '@/lib/types';
 
@@ -23,8 +25,22 @@ const POLL_MS = 1500;
 // server-only DB modules that can't ship to the client bundle.
 const ANSWER_WINDOW_MS = 20_000;
 
+function avatarOf(p: GameState['players'][number]): string {
+  return avatarSrcFor({
+    id: p.userId,
+    avatarOptions: p.avatarOptions,
+    equippedItemId: p.equippedItemId,
+  });
+}
+
 function toLeaderboard(state: GameState): LeaderboardRow[] {
-  return state.players.map((p, i) => ({ id: p.id, rank: i + 1, name: p.name, score: p.score }));
+  return state.players.map((p, i) => ({
+    id: p.id,
+    rank: i + 1,
+    name: p.name,
+    score: p.score,
+    avatar: avatarOf(p),
+  }));
 }
 
 export default function PlayGamePage({
@@ -145,8 +161,7 @@ export default function PlayGamePage({
   if (!state) {
     return (
       <StageScreen>
-        <StageHeader />
-        <p className="text-stage-text-soft">Ачаалж байна...</p>
+        <LoadingScreen />
       </StageScreen>
     );
   }
@@ -166,13 +181,15 @@ export default function PlayGamePage({
             code={state.code}
             hint={`${state.players.length} тоглогч нэгдсэн`}
           />
-          <Leaderboard rows={toLeaderboard(state)} />
+          <PlayerGrid
+            players={state.players.map((p) => ({ id: p.id, name: p.name, avatar: avatarOf(p) }))}
+          />
           {state.isHost ? (
             <Button variant="primary" size="lg" onClick={handleStart} disabled={busy}>
               Тоглоом эхлүүлэх
             </Button>
           ) : (
-            <p className="text-stage-text-soft">Тоглоомыг эхлүүлэхийг хүлээж байна...</p>
+            <p className="text-ink-soft">Тоглоомыг эхлүүлэхийг хүлээж байна...</p>
           )}
         </div>
       )}
@@ -180,16 +197,21 @@ export default function PlayGamePage({
       {state.status === 'active' && state.question && !state.revealed && (
         <div className="flex w-full max-w-225 flex-col items-center gap-6">
           <p className="text-center font-display text-2xl">{state.question.prompt}</p>
-          <p className="text-stage-text-soft">
+          <p className="text-ink-soft">
             Асуулт {state.currentQuestionIndex + 1} / {state.totalQuestions}
           </p>
           {state.isHost ? (
             <>
+              <AnswerGrid>
+                {state.question.options.map((opt, i) => (
+                  <AnswerOption key={i} index={i} label={opt} interactive={false} />
+                ))}
+              </AnswerGrid>
               <Leaderboard rows={toLeaderboard(state)} />
               <Button variant="primary" onClick={handleReveal} disabled={busy}>
                 Хариу харуулах
               </Button>
-              <p className="text-sm text-stage-text-soft">
+              <p className="text-sm text-ink-soft">
                 {state.answeredCount} / {state.players.length} хариулсан ·
                 хүн бүр хариулах эсвэл хугацаа дуусахад хариу автоматаар харагдана.
               </p>
@@ -209,18 +231,45 @@ export default function PlayGamePage({
             </AnswerGrid>
           )}
           {!state.isHost && state.myAnswer !== null && (
-            <p className="text-stage-text-soft">Хариулт илгээгдлээ, хариу хүлээж байна...</p>
+            <p className="text-ink-soft">Хариулт илгээгдлээ, хариу хүлээж байна...</p>
           )}
         </div>
       )}
 
       {state.status === 'active' && state.question && state.revealed && (
         <div className="flex w-full max-w-225 flex-col items-center gap-6">
-          <AnswerBars
-            options={state.question.options}
-            optionCounts={state.question.tally ?? state.question.options.map(() => 0)}
-            correctIndex={state.question.correctIndex ?? -1}
-          />
+          <p className="text-center font-display text-2xl">{state.question.prompt}</p>
+          {!state.isHost && (
+            <p
+              className={
+                state.myAnswer === null
+                  ? 'font-semibold text-ink-soft'
+                  : state.myAnswer === state.question.correctIndex
+                    ? 'font-semibold text-mint'
+                    : 'font-semibold text-coral'
+              }
+            >
+              {state.myAnswer === null
+                ? 'Та хариулсангүй'
+                : state.myAnswer === state.question.correctIndex
+                  ? 'Зөв хариуллаа! 🎉'
+                  : 'Буруу хариулт'}
+            </p>
+          )}
+          <AnswerGrid>
+            {state.question.options.map((opt, i) => (
+              <AnswerOption
+                key={i}
+                index={i}
+                label={opt}
+                interactive={false}
+                correct={i === state.question?.correctIndex}
+                dimmed={i !== state.question?.correctIndex}
+                chosen={state.myAnswer === i}
+                count={state.question?.tally?.[i] ?? 0}
+              />
+            ))}
+          </AnswerGrid>
           <Leaderboard rows={toLeaderboard(state)} />
           {state.isHost ? (
             <Button variant="primary" onClick={handleNext} disabled={busy}>
@@ -229,7 +278,7 @@ export default function PlayGamePage({
                 : 'Дараагийн асуулт'}
             </Button>
           ) : (
-            <p className="text-stage-text-soft">Дараагийн асуултыг хүлээж байна...</p>
+            <p className="text-ink-soft">Дараагийн асуултыг хүлээж байна...</p>
           )}
         </div>
       )}
@@ -238,7 +287,7 @@ export default function PlayGamePage({
         <div className="flex w-full max-w-155 flex-col items-center gap-6">
           <p className="font-display text-3xl">Тоглоом дууслаа!</p>
           <Leaderboard rows={toLeaderboard(state)} />
-          <Button variant="ghost" stage onClick={() => router.push('/play')}>
+          <Button variant="ghost" onClick={() => router.push('/play')}>
             Буцах
           </Button>
         </div>
