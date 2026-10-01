@@ -5,6 +5,7 @@ import { assignments, gameSessions, quizzes, submissions } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessQuiz, getClassMembership } from '@/lib/access';
 import { deleteGamesForQuizzes } from '@/lib/deletion';
+import { GAME_MAX_AGE_MS } from '@/lib/game';
 import { toQuiz } from '@/lib/mappers';
 import { parseQuestions, parseTitle } from '@/lib/quiz/validate';
 import { isUuid } from '@/lib/uuid';
