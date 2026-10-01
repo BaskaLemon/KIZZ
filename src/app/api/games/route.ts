@@ -8,8 +8,8 @@ import { generateUniqueCode } from '@/lib/codes';
 import { pgErrorCode, UNIQUE_VIOLATION } from '@/lib/dbErrors';
 import { toGameSession } from '@/lib/mappers';
 
-// A group quiz has one shared lobby: while one is still open, everyone in the
-// group who hits "play" lands in it instead of spawning a lobby of their own.
+// A group or class quiz has one shared lobby: while one is still open, everyone
+// in the group or class who hits "play" lands in it instead of spawning a lobby of their own.
 const SHARED_LOBBY_WINDOW_MS = 30 * 60 * 1000;
 
 // Creates the DB record for a live game and hands back its join code. This
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Quiz олдсонгүй.' }, { status: 404 });
   }
 
-  if (quiz.groupId) {
+  if (quiz.groupId || quiz.classId) {
     const [open] = await db
       .select()
       .from(gameSessions)
