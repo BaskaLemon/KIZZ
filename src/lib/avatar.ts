@@ -191,5 +191,16 @@ export function avatarSrcFor(user: AvatarSubject): string {
   if (user.equippedItemId) {
     return `/api/avatars/preset/${user.equippedItemId}?seed=${encodeURIComponent(user.id)}`;
   }
-  return generateAvatarUri(user.avatarOptions ?? avatarOptionsForUser(user.id));
+  const options = user.avatarOptions ?? avatarOptionsForUser(user.id);
+  // Rendering an avatar is a full SVG build; live screens ask for every
+  // player's on each poll, so remember the result per look.
+  const key = JSON.stringify(options);
+  let uri = avatarUriCache.get(key);
+  if (uri === undefined) {
+    uri = generateAvatarUri(options);
+    avatarUriCache.set(key, uri);
+  }
+  return uri;
 }
+
+const avatarUriCache = new Map<string, string>();
