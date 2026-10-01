@@ -6,11 +6,11 @@ import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessQuiz } from '@/lib/access';
 import { generateUniqueCode } from '@/lib/codes';
 import { pgErrorCode, UNIQUE_VIOLATION } from '@/lib/dbErrors';
+import { GAME_MAX_AGE_MS } from '@/lib/game';
 import { toGameSession } from '@/lib/mappers';
 
 // A group or class quiz has one shared lobby: while one is still open, everyone
 // in the group or class who hits "play" lands in it instead of spawning a lobby of their own.
-const SHARED_LOBBY_WINDOW_MS = 30 * 60 * 1000;
 
 // Creates the DB record for a live game and hands back its join code. This
 // only covers the REST surface — actually running a live match (players
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
         and(
           eq(gameSessions.quizId, quizId),
           eq(gameSessions.status, 'lobby'),
-          gt(gameSessions.createdAt, new Date(Date.now() - SHARED_LOBBY_WINDOW_MS)),
+          gt(gameSessions.createdAt, new Date(Date.now() - GAME_MAX_AGE_MS)),
         ),
       )
       .orderBy(desc(gameSessions.createdAt))

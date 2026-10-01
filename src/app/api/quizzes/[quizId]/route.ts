@@ -150,8 +150,8 @@ export async function PATCH(request: Request, { params }: Params) {
         and(
           eq(gameSessions.quizId, quizId),
           ne(gameSessions.status, 'finished'),
-          // A game nobody closed (browser killed) must not block edits forever.
-          gt(gameSessions.createdAt, new Date(Date.now() - 3 * 60 * 60 * 1000)),
+          // A game nobody closed (browser killed) expires, see GAME_MAX_AGE_MS.
+          gt(gameSessions.createdAt, new Date(Date.now() - GAME_MAX_AGE_MS)),
         ),
       )
       .limit(1);

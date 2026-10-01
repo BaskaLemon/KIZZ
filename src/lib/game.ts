@@ -17,6 +17,9 @@ import type { GameState } from '@/lib/types';
  * single place that decides what's visible pre- vs post-reveal. */
 export const ANSWER_WINDOW_MS = 20_000;
 
+/** A game still unfinished this long after it was created is closed. */
+export const GAME_MAX_AGE_MS = 30 * 60 * 1000;
+
 /** Questions open this long after the host advances. Clients learn about the
  * change at different moments (they poll), so each one waits for the shared
  * server-clock start time and the question appears for everyone together. */
@@ -34,6 +37,19 @@ export async function loadGameState(
     .where(eq(gameSessions.id, gameSessionId))
     .limit(1);
   if (!session) return null;
+
+  // Lazy expiry: anyone polling a stale game closes it (no payout, like a
+  // host leaving). Nothing else runs on a schedule here.
+  if (
+    session.status !== 'finished' &&
+    Date.now() - session.createdAt.getTime() > GAME_MAX_AGE_MS
+  ) {
+    await db
+      .update(gameSessions)
+      .set({ status: 'finished' })
+      .where(eq(gameSessions.id, gameSessionId));
+    session.status = 'finished';
+  }
 
   const onQuestion =
     session.status === 'active'
