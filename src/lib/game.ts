@@ -17,6 +17,11 @@ import type { GameState } from '@/lib/types';
  * single place that decides what's visible pre- vs post-reveal. */
 export const ANSWER_WINDOW_MS = 20_000;
 
+/** Questions open this long after the host advances. Clients learn about the
+ * change at different moments (they poll), so each one waits for the shared
+ * server-clock start time and the question appears for everyone together. */
+export const QUESTION_LEAD_MS = 2_000;
+
 export async function loadGameState(
   gameSessionId: string,
   userId: string,

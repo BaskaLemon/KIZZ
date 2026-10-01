@@ -23,7 +23,7 @@ import { MIN_PLAYERS_FOR_REWARDS } from '@/lib/points/rules';
 import { useToast } from '@/lib/toast';
 import type { ApiError, GameState, LeaderboardRow } from '@/lib/types';
 
-const POLL_MS = 1500;
+const POLL_MS = 1000;
 // Mirrors ANSWER_WINDOW_MS in src/lib/game.ts (the scoring source of
 // truth) — duplicated here rather than imported since that file pulls in
 // server-only DB modules that can't ship to the client bundle.
@@ -65,6 +65,8 @@ export default function PlayGamePage({
   // Shown instantly on tap, before the server confirms the answer.
   const [pending, setPending] = useState<{ q: number; option: number } | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
+  // Whole seconds until the current question opens for everyone (0 = open).
+  const [startsIn, setStartsIn] = useState(0);
   // Server clock minus client clock. Deadlines come from the server, so the
   // timer and the host's auto-reveal must not trust this device's own clock.
   const clockOffsetRef = useRef(0);
@@ -109,11 +111,18 @@ export default function PlayGamePage({
     if (!startedAt || state.status !== 'active' || state.revealed) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSecondsLeft(0);
+      setStartsIn(0);
       return;
     }
     const tick = () => {
       const elapsed = serverNow() - new Date(startedAt).getTime();
-      setSecondsLeft(Math.max(0, Math.ceil((ANSWER_WINDOW_MS - elapsed) / 1000)));
+      setSecondsLeft(
+        Math.min(
+          ANSWER_WINDOW_MS / 1000,
+          Math.max(0, Math.ceil((ANSWER_WINDOW_MS - elapsed) / 1000)),
+        ),
+      );
+      setStartsIn(Math.max(0, Math.ceil(-elapsed / 1000)));
     };
     tick();
     const id = setInterval(tick, 250);
@@ -214,7 +223,7 @@ export default function PlayGamePage({
   return (
     <StageScreen immersive={state.status === 'active'}>
       <StageHeader>
-        {state.status === 'active' && !state.revealed && (
+        {state.status === 'active' && !state.revealed && startsIn === 0 && (
           <TimerRing seconds={secondsLeft} />
         )}
       </StageHeader>
@@ -258,7 +267,17 @@ export default function PlayGamePage({
         </div>
       )}
 
-      {state.status === 'active' && state.question && !state.revealed && (
+      {state.status === 'active' && !state.revealed && startsIn > 0 && (
+        <div className="flex w-full max-w-155 flex-col items-center gap-4">
+          <p className="text-ink-soft">
+            Асуулт {state.currentQuestionIndex + 1} / {state.totalQuestions}
+          </p>
+          <p className="font-display text-7xl">{startsIn}</p>
+          <p className="text-ink-soft">Бэлдээрэй...</p>
+        </div>
+      )}
+
+      {state.status === 'active' && state.question && !state.revealed && startsIn === 0 && (
         <div className="flex w-full max-w-225 flex-col items-center gap-6">
           <p className="text-center font-display text-2xl">{state.question.prompt}</p>
           <p className="text-ink-soft">

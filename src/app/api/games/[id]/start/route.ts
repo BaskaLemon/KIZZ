@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { gameSessions } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
-import { loadGameState } from '@/lib/game';
+import { loadGameState, QUESTION_LEAD_MS } from '@/lib/game';
 import { isUuid } from '@/lib/uuid';
 
 type Params = { params: Promise<{ id: string }> };
@@ -39,7 +39,7 @@ export async function POST(request: Request, { params }: Params) {
 
   await getDb()
     .update(gameSessions)
-    .set({ status: 'active', currentQuestionIndex: 0, questionStartedAt: new Date(), revealed: false })
+    .set({ status: 'active', currentQuestionIndex: 0, questionStartedAt: new Date(Date.now() + QUESTION_LEAD_MS), revealed: false })
     .where(eq(gameSessions.id, id));
 
   const state = await loadGameState(id, auth.user.id);

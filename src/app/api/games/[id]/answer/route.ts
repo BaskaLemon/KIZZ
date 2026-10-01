@@ -34,6 +34,10 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: 'Тоглоом идэвхгүй байна.' }, { status: 400 });
   }
 
+  if (session.questionStartedAt && session.questionStartedAt.getTime() > Date.now()) {
+    return NextResponse.json({ error: 'Асуулт одоохондоо эхлээгүй байна.' }, { status: 400 });
+  }
+
   const [player] = await db
     .select()
     .from(gamePlayers)
@@ -62,7 +66,7 @@ export async function POST(request: Request, { params }: Params) {
   const elapsedMs = session.questionStartedAt
     ? Date.now() - session.questionStartedAt.getTime()
     : ANSWER_WINDOW_MS;
-  const remaining = Math.max(0, 1 - elapsedMs / ANSWER_WINDOW_MS);
+  const remaining = Math.min(1, Math.max(0, 1 - elapsedMs / ANSWER_WINDOW_MS));
   const pointsAwarded = isCorrect ? Math.round(500 + 500 * remaining) : 0;
 
   try {
