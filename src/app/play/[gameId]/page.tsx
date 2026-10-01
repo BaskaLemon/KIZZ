@@ -222,6 +222,13 @@ export default function PlayGamePage({
 
   return (
     <StageScreen immersive={state.status === 'active'}>
+      {state.status !== 'finished' && (
+        <div className="mb-3 flex w-full max-w-225 justify-start">
+          <Button variant="ghost" onClick={() => router.push('/play')}>
+            {state.isHost ? 'Тоглоомыг дуусгах' : 'Гарах'}
+          </Button>
+        </div>
+      )}
       <StageHeader>
         {state.status === 'active' && !state.revealed && startsIn === 0 && (
           <TimerRing seconds={secondsLeft} />

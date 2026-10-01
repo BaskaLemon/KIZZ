@@ -32,7 +32,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'classwork', label: 'Даалгавар' },
   { key: 'notes', label: 'Тэмдэглэл' },
   { key: 'quiz', label: 'Quiz' },
-  { key: 'people', label: 'Хүмүүс' },
+  { key: 'people', label: 'Гишүүд' },
   { key: 'marks', label: 'Дүн' },
 ];
 

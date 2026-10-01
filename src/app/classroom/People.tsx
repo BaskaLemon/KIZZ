@@ -4,23 +4,26 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import { useConfirm } from '@/lib/confirm';
-import { initials } from '@/lib/initials';
-import type { ApiError, ClassPeople } from '@/lib/types';
+import { avatarSrcFor } from '@/lib/avatar';
+import type { ApiError, ClassPeople, PersonSummary } from '@/lib/types';
 
 function PersonRow({
-  name,
+  person,
   badge,
   actions,
 }: {
-  name: string;
+  person: PersonSummary;
   badge?: string;
   actions?: React.ReactNode;
 }) {
+  const { name } = person;
   return (
     <div className="flex items-center gap-3 border-b-2 border-line py-3 last:border-b-0">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet/15 text-sm font-bold text-violet">
-        {initials(name)}
-      </span>
+      <img
+        src={avatarSrcFor(person)}
+        alt=""
+        className="h-9 w-9 shrink-0 rounded-full object-cover"
+      />
       <p className="text-[15px] font-medium text-ink">{name}</p>
       {badge && (
         <span className="ml-auto rounded-full bg-paper px-2.5 py-1 text-[12px] font-semibold text-ink-soft">
@@ -84,7 +87,7 @@ export function People({
           {people.teachers.map((t) => (
             <PersonRow
               key={t.id}
-              name={t.name}
+              person={t}
               badge={t.isPrimary ? 'Үүсгэгч' : 'Хамтран админ'}
               actions={
                 isOwner && !t.isPrimary ? (
@@ -125,7 +128,7 @@ export function People({
             {people.students.map((s) => (
               <PersonRow
                 key={s.id}
-                name={s.name}
+                person={s}
                 actions={
                   canManage ? (
                     <>

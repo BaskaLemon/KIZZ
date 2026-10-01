@@ -208,6 +208,15 @@ export const api = {
     request<GameState>('POST', `/games/${id}/answer`, { optionIndex }),
   revealGame: (id: string) => request<GameState>('POST', `/games/${id}/reveal`),
   nextGame: (id: string) => request<GameState>('POST', `/games/${id}/next`),
+  endGame: (id: string) => request<{ ended: boolean }>('POST', `/games/${id}/end`),
+  /** Fire-and-forget end for a closing tab — `keepalive` lets it outlive the page. */
+  endGameOnExit: (id: string) => {
+    void fetch(`${BASE}/games/${id}/end`, {
+      method: 'POST',
+      headers: authHeaders(),
+      keepalive: true,
+    }).catch(() => {});
+  },
 
   // classroom
   myClasses: () => request<Class[]>('GET', '/me/classes'),

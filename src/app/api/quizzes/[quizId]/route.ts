@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, eq, inArray, ne } from 'drizzle-orm';
+import { and, eq, gt, inArray, ne } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import { assignments, gameSessions, quizzes, submissions } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
@@ -146,7 +146,14 @@ export async function PATCH(request: Request, { params }: Params) {
     const [live] = await db
       .select({ id: gameSessions.id })
       .from(gameSessions)
-      .where(and(eq(gameSessions.quizId, quizId), ne(gameSessions.status, 'finished')))
+      .where(
+        and(
+          eq(gameSessions.quizId, quizId),
+          ne(gameSessions.status, 'finished'),
+          // A game nobody closed (browser killed) must not block edits forever.
+          gt(gameSessions.createdAt, new Date(Date.now() - 3 * 60 * 60 * 1000)),
+        ),
+      )
       .limit(1);
     if (live) {
       return NextResponse.json(
