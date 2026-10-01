@@ -106,7 +106,7 @@ export default function ClassList({ user }: { user: User }) {
         <div>
           <h2 className="mb-0.5 text-2xl">Бүлгүүд</h2>
           <p className="text-ink-soft">
-            Найз, баг, гэр бүл эсвэл ангийнхаа хүмүүстэй хамт суралцаарай.
+            Найз нөхөд, ангийн хамт олон, гэр бүлээрээ хамтдаа сурч, хөгжөөрэй!
           </p>
         </div>
         <Button
