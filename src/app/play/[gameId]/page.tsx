@@ -29,6 +29,11 @@ const POLL_MS = 1500;
 // server-only DB modules that can't ship to the client bundle.
 const ANSWER_WINDOW_MS = 20_000;
 
+/** Players who count towards the reward minimum: everyone but the host. */
+function realPlayers(state: GameState): number {
+  return state.players.filter((p) => p.userId !== state.hostUserId).length;
+}
+
 function avatarOf(p: GameState['players'][number]): string {
   return avatarSrcFor({
     id: p.userId,
@@ -151,6 +156,10 @@ export default function PlayGamePage({
     }
   }
 
+  async function handlePlayAlong(play: boolean) {
+    const s = await act(() => (play ? api.joinGame(gameId) : api.leaveGame(gameId)));
+    if (s) setState(s);
+  }
   async function handleStart() {
     const s = await act(() => api.startGame(gameId));
     if (s) setState(s);
@@ -192,7 +201,7 @@ export default function PlayGamePage({
             hint={`${state.players.length} тоглогч нэгдсэн`}
           />
           <p className="text-center text-sm text-ink-soft">
-            {state.players.length >= MIN_PLAYERS_FOR_REWARDS
+            {realPlayers(state) >= MIN_PLAYERS_FOR_REWARDS
               ? 'Coin, XP олгогдоно'
               : `Coin, XP олгогдохын тулд дор хаяж ${MIN_PLAYERS_FOR_REWARDS} тоглогч хэрэгтэй`}
           </p>
@@ -200,9 +209,23 @@ export default function PlayGamePage({
             players={state.players.map((p) => ({ id: p.id, name: p.name, avatar: avatarOf(p) }))}
           />
           {state.isHost ? (
-            <Button variant="primary" size="lg" onClick={handleStart} disabled={busy}>
-              Тоглоом эхлүүлэх
-            </Button>
+            <div className="flex flex-col items-center gap-3">
+              <Button variant="primary" size="lg" onClick={handleStart} disabled={busy}>
+                Тоглоом эхлүүлэх
+              </Button>
+              <Button
+                variant={state.isPlayer ? 'ghost' : 'mint'}
+                onClick={() => handlePlayAlong(!state.isPlayer)}
+                disabled={busy}
+              >
+                {state.isPlayer ? 'Би тоглохгүй' : '🎮 Би бас тоглоно'}
+              </Button>
+              <p className="max-w-sm text-center text-xs text-ink-soft">
+                {state.isPlayer
+                  ? 'Та тоглогчоор оролцож байна. Хост тоглохдоо coin, XP авахгүй.'
+                  : 'Өөрийн тоглоомдоо тоглогчоор оролцож болно (coin, XP авахгүй).'}
+              </p>
+            </div>
           ) : (
             <p className="text-ink-soft">Тоглоомыг эхлүүлэхийг хүлээж байна...</p>
           )}
@@ -218,9 +241,20 @@ export default function PlayGamePage({
           {state.isHost ? (
             <>
               <AnswerGrid>
-                {state.question.options.map((opt, i) => (
-                  <AnswerOption key={i} index={i} label={opt} interactive={false} />
-                ))}
+                {state.question.options.map((opt, i) =>
+                  state.isPlayer ? (
+                    <AnswerOption
+                      key={i}
+                      index={i}
+                      label={opt}
+                      chosen={state.myAnswer === i}
+                      disabled={state.myAnswer !== null || busy}
+                      onClick={() => handleAnswer(i)}
+                    />
+                  ) : (
+                    <AnswerOption key={i} index={i} label={opt} interactive={false} />
+                  ),
+                )}
               </AnswerGrid>
               <Leaderboard rows={toLeaderboard(state)} />
               <Button variant="primary" onClick={handleReveal} disabled={busy}>
@@ -245,7 +279,7 @@ export default function PlayGamePage({
               ))}
             </AnswerGrid>
           )}
-          {!state.isHost && state.myAnswer !== null && (
+          {state.isPlayer && state.myAnswer !== null && (
             <p className="text-ink-soft">Хариулт илгээгдлээ, хариу хүлээж байна...</p>
           )}
         </div>
@@ -254,7 +288,7 @@ export default function PlayGamePage({
       {state.status === 'active' && state.question && state.revealed && (
         <div className="flex w-full max-w-225 flex-col items-center gap-6">
           <p className="text-center font-display text-2xl">{state.question.prompt}</p>
-          {!state.isHost && (
+          {state.isPlayer && (
             <p
               className={
                 state.myAnswer === null
@@ -304,7 +338,7 @@ export default function PlayGamePage({
           <p className="font-display text-3xl">Тоглоом дууслаа!</p>
           <Podium rows={toLeaderboard(state)} />
           {state.myReward && <RewardCard state={state} reward={state.myReward} />}
-          {state.isHost && state.players.length < MIN_PLAYERS_FOR_REWARDS && (
+          {state.isHost && !state.isPlayer && realPlayers(state) < MIN_PLAYERS_FOR_REWARDS && (
             <p className="text-center text-sm text-ink-soft">
               {MIN_PLAYERS_FOR_REWARDS}-аас цөөн тоглогчтой тул coin, XP олгогдсонгүй.
             </p>
@@ -330,8 +364,9 @@ function RewardCard({
   const earned = reward.coins > 0 || reward.xp > 0;
   let reason = '';
   if (!earned) {
-    reason =
-      state.players.length < MIN_PLAYERS_FOR_REWARDS
+    reason = state.isHost
+      ? 'Хост тоглогчоор оролцсон тул coin, XP олгогдсонгүй.'
+      : realPlayers(state) < MIN_PLAYERS_FOR_REWARDS
         ? `Coin, XP авахын тулд дор хаяж ${MIN_PLAYERS_FOR_REWARDS} тоглогч хэрэгтэй.`
         : 'Оноо аваагүй тул энэ удаад шагнал олгогдсонгүй.';
   } else if (reward.coins === 0) {

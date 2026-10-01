@@ -56,16 +56,21 @@ async function coinsEarnedToday(tx: Tx, userId: string): Promise<number> {
  *  - coins from placements are capped per player per day (XP is not).
  * `results` need not be pre-sorted; each entry's own `rank` decides its
  * reward. The result row is always recorded, with the coins actually paid.
+ * `unrewarded` lists users who played but never earn or count towards the
+ * minimum — the host playing along with their own game.
  */
 export async function awardPlacementPoints(
   gameSessionId: string,
   results: PlacementInput[],
+  unrewarded: string[] = [],
 ): Promise<PlacementResult[]> {
   if (results.length === 0) return [];
 
   const rewardTable = await loadRewardTable(results.map((r) => r.rank));
   const fallbackPoints = rewardTable.get(FALLBACK_RANK) ?? 0;
-  const eligibleGame = results.length >= MIN_PLAYERS_FOR_REWARDS;
+  const skip = new Set(unrewarded);
+  const eligibleGame =
+    results.filter((r) => !skip.has(r.userId)).length >= MIN_PLAYERS_FOR_REWARDS;
 
   return getDb().transaction(async (tx) => {
     const payouts: PlacementResult[] = [];
@@ -73,7 +78,7 @@ export async function awardPlacementPoints(
     for (const result of results) {
       let coins = 0;
       let xp = 0;
-      if (eligibleGame && result.score > 0) {
+      if (eligibleGame && result.score > 0 && !skip.has(result.userId)) {
         const reward = rewardTable.get(result.rank) ?? fallbackPoints;
         const room = Math.max(0, DAILY_GAME_COIN_CAP - (await coinsEarnedToday(tx, result.userId)));
         coins = Math.min(reward, room);

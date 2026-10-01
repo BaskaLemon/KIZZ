@@ -129,6 +129,8 @@ export async function loadGameState(
     code: session.code,
     status: session.status,
     isHost: session.createdBy === userId,
+    hostUserId: session.createdBy,
+    isPlayer: !!me,
     currentQuestionIndex: session.currentQuestionIndex,
     totalQuestions: quiz.questions.length,
     questionStartedAt: session.questionStartedAt
@@ -161,9 +163,18 @@ export async function finishGameSession(gameSessionId: string) {
     .where(eq(gamePlayers.gameSessionId, gameSessionId))
     .orderBy(desc(gamePlayers.score));
 
+  const [session] = await db
+    .select({ createdBy: gameSessions.createdBy })
+    .from(gameSessions)
+    .where(eq(gameSessions.id, gameSessionId))
+    .limit(1);
+
+  // The host may play along; they appear on the board but earn nothing and
+  // don't count towards the minimum number of players.
   const results = await awardPlacementPoints(
     gameSessionId,
     finalPlayers.map((p, i) => ({ userId: p.userId, rank: i + 1, score: p.score })),
+    session ? [session.createdBy] : [],
   );
   await db
     .update(gameSessions)

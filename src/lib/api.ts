@@ -201,6 +201,7 @@ export const api = {
   createGame: (quizId: string) => request<GameSession>('POST', '/games', { quizId }),
   lookupGameByCode: (code: string) => request<GameSession>('GET', `/games/code/${code}`),
   joinGame: (id: string) => request<GameState>('POST', `/games/${id}/join`),
+  leaveGame: (id: string) => request<GameState>('DELETE', `/games/${id}/join`),
   getGameState: (id: string) => request<GameState>('GET', `/games/${id}/state`),
   startGame: (id: string) => request<GameState>('POST', `/games/${id}/start`),
   answerGame: (id: string, optionIndex: number) =>

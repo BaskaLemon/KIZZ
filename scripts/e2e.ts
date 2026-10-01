@@ -51,6 +51,8 @@ const tokB = r.data?.token; const userB = r.data?.user;
 const emailC = `e2e-c-${stamp}@example.test`, emailD = `e2e-d-${stamp}@example.test`;
 const rc = await call(null, 'POST', '/auth/signup', { name: 'E2E C', email: emailC, password: 'secret12' }); const tokC = rc.data?.token; const userC = rc.data?.user;
 const rd = await call(null, 'POST', '/auth/signup', { name: 'E2E D', email: emailD, password: 'secret12' }); const tokD = rd.data?.token; const userD = rd.data?.user;
+const extra = async (tag: string) => (await call(null, 'POST', '/auth/signup', { name: `E2E ${tag}`, email: `e2e-${tag.toLowerCase()}-${stamp}@example.test`, password: 'secret12' })).data?.token as string;
+const tokE = await extra('E'), tokF = await extra('F'), tokG = await extra('G');
 r = await call(null, 'POST', '/auth/signup', { name: 'dup', email: emailA, password: 'secret12' });
 check('duplicate email rejected (409)', r.status === 409, r);
 r = await call(null, 'POST', '/auth/login', { email: emailA, password: 'wrong-pass' });
@@ -196,7 +198,6 @@ const threePlayers = () => [
 
 r = await call(tokA, 'POST', '/games', { quizId: gq?.id }); check('host creates game', r.status === 201, r); const game = r.data;
 r = await call(tokB, 'GET', `/games/code/${game?.code}`); check('lookup by code', r.status === 200, r);
-r = await call(tokA, 'POST', `/games/${game?.id}/join`); check('host cannot join their own game (403)', r.status === 403, r);
 r = await call(tokB, 'POST', `/games/${game?.id}/join`); check('join game', r.status < 300, r);
 r = await call(tokB, 'POST', `/games/${game?.id}/start`); check('non-host cannot start (403)', r.status === 403, r);
 r = await call(tokA, 'POST', `/games/${game?.id}/finish`, { results: [] }); check('cannot finish a game that has not started (400)', r.status === 400, r);
@@ -260,6 +261,61 @@ const b4 = await balanceOf(tokB);
 check('daily coin cap: no more coins after 1000 from games', b4.balance === b3.balance, { b3, b4 });
 check('XP is not capped', b4.xp - b3.xp === 100, { b3, b4 });
 r = await call(tokB, 'GET', '/points/history'); check('history lists the awards', r.status === 200 && JSON.stringify(r.data).includes('quiz_placement'), r.status);
+
+// --- the host playing along with their own game
+{
+  const hostQuiz = await seedQuiz({ ownerId: userA?.id, noteId: pn?.id });
+  const rightA = gq.questions.map((q: any) => q.correctIndex);
+  const wrongA = gq.questions.map((q: any) => (q.correctIndex + 1) % 4);
+  const halfRight = gq.questions.map((q: any, i: number) => (i === 0 ? q.correctIndex : (q.correctIndex + 1) % 4));
+  const none = gq.questions.map(() => null);
+
+  const hg = (await call(tokA, 'POST', '/games', { quizId: hostQuiz.id })).data;
+  r = await call(tokA, 'GET', `/games/${hg.id}/state`); check('state tells whether the caller plays', r.data.isHost === true && r.data.isPlayer === false && r.data.hostUserId === userA?.id, r.data);
+  r = await call(tokA, 'POST', `/games/${hg.id}/join`); check('the host can play along from the lobby', r.status === 200 && r.data.isPlayer === true && r.data.players.some((p: any) => p.userId === userA?.id), r);
+  r = await call(tokA, 'DELETE', `/games/${hg.id}/join`); check('and change their mind', r.status === 200 && r.data.isPlayer === false && r.data.players.length === 0, r.data);
+  r = await call(tokA, 'POST', `/games/${hg.id}/join`); check('join again', r.data.isPlayer === true, r.data);
+  r = await call(tokE, 'POST', `/games/${hg.id}/join`); check('others join as usual', r.status === 200, r);
+  await call(tokF, 'POST', `/games/${hg.id}/join`);
+  await call(tokA, 'POST', `/games/${hg.id}/start`);
+  r = await call(tokA, 'DELETE', `/games/${hg.id}/join`); check('nobody can leave once it started (409)', r.status === 409, r);
+  r = await call(tokG, 'POST', `/games/${hg.id}/join`); check('late players can still join a running game', r.status === 200, r);
+  r = await call(tokA, 'POST', `/games/${hg.id}/answer`, { optionIndex: wrongA[0] }); check('the host answers like a player', r.status < 300, r);
+  for (let q = 0; q < gq.questions.length; q++) {
+    if (q > 0) await call(tokA, 'POST', `/games/${hg.id}/answer`, { optionIndex: wrongA[q] });
+    await call(tokE, 'POST', `/games/${hg.id}/answer`, { optionIndex: rightA[q] });
+    await call(tokF, 'POST', `/games/${hg.id}/answer`, { optionIndex: halfRight[q] });
+    if (none[q] !== null) await call(tokG, 'POST', `/games/${hg.id}/answer`, { optionIndex: none[q] });
+    await call(tokA, 'POST', `/games/${hg.id}/reveal`);
+    await call(tokA, 'POST', `/games/${hg.id}/next`);
+  }
+  const eAfter = await balanceOf(tokE), fAfter = await balanceOf(tokF), gAfter = await balanceOf(tokG), aAfter = await balanceOf(tokA);
+  check('with 3 other players it pays: 1st place', eAfter.balance >= 500 && eAfter.xp >= 100, eAfter);
+  check('with 3 other players it pays: 2nd place', fAfter.balance >= 300, fAfter);
+  check('the player who never scored earns nothing', gAfter.balance === 0 && gAfter.xp === 0, gAfter);
+  r = await call(tokA, 'GET', `/games/${hg.id}/state`);
+  check('the host played but earned no coins or XP', r.data.myReward?.coins === 0 && r.data.myReward?.xp === 0 && r.data.players.some((p: any) => p.userId === userA?.id), r.data.myReward);
+  const aXpBefore = aAfter.xp;
+
+  // the host must not count towards the 3-player minimum
+  const hg2 = (await call(tokA, 'POST', '/games', { quizId: hostQuiz.id })).data;
+  await call(tokA, 'POST', `/games/${hg2.id}/join`);
+  await call(tokE, 'POST', `/games/${hg2.id}/join`);
+  await call(tokF, 'POST', `/games/${hg2.id}/join`);
+  await call(tokA, 'POST', `/games/${hg2.id}/start`);
+  r = await call(tokA, 'POST', `/games/${hg2.id}/join`); check('the host cannot join after it started (409)', r.status === 409, r);
+  const e1 = await balanceOf(tokE), f1 = await balanceOf(tokF);
+  for (let q = 0; q < gq.questions.length; q++) {
+    await call(tokE, 'POST', `/games/${hg2.id}/answer`, { optionIndex: rightA[q] });
+    await call(tokF, 'POST', `/games/${hg2.id}/answer`, { optionIndex: rightA[q] });
+    await call(tokA, 'POST', `/games/${hg2.id}/answer`, { optionIndex: rightA[q] });
+    await call(tokA, 'POST', `/games/${hg2.id}/reveal`);
+    await call(tokA, 'POST', `/games/${hg2.id}/next`);
+  }
+  const e2 = await balanceOf(tokE), f2 = await balanceOf(tokF), a2 = await balanceOf(tokA);
+  check('host + 2 others is not enough players: nobody is paid', e2.balance === e1.balance && f2.balance === f1.balance && e2.xp === e1.xp, { e1, e2, f1, f2 });
+  check('the host still earns nothing', a2.balance === aAfter.balance && a2.xp === aXpBefore, { aAfter, a2 });
+}
 
 // --- points / shop / streak
 r = await call(tokB, 'GET', '/points/balance'); check('balance', r.status === 200, r); out.bal = r.data;

@@ -84,6 +84,10 @@ export interface GameState {
   code: string;
   status: GameStatus;
   isHost: boolean;
+  /** Who started the game (the host may also be one of the players). */
+  hostUserId: string;
+  /** The caller has joined as a player. */
+  isPlayer: boolean;
   currentQuestionIndex: number;
   totalQuestions: number;
   questionStartedAt: string | null;
