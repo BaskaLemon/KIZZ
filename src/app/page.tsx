@@ -3,7 +3,7 @@ import { Landing } from '@/components/Landing';
 import HomeClient from './HomeClient';
 
 export const metadata: Metadata = {
-  title: { absolute: 'KIZZ — Сур Сорь Тогло Хөгж' },
+  title: { absolute: 'KIZZ — Өөрийгөө сорь' },
   description:
     'Тэмдэглэлээ бич, нэг товшилтоор AI-аар quiz болго, найзуудтайгаа шууд тоглож өрсөлд. Сурагч, оюутан, ажилтан, өөрөө сурч байгаа хэн бүхэнд.',
 };

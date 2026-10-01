@@ -19,20 +19,20 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: 'KIZZ — Сур Сорь Тогло Хөгж', template: '%s — KIZZ' },
+  title: { default: 'KIZZ — Өөрийгөө сорь', template: '%s — KIZZ' },
   description: DESCRIPTION,
   applicationName: 'KIZZ',
   openGraph: {
     type: 'website',
     siteName: 'KIZZ',
     locale: 'mn_MN',
-    title: 'KIZZ — Сур Сорь Тогло Хөгж',
+    title: 'KIZZ — Өөрийгөө сорь',
     description: DESCRIPTION,
     images: [{ url: '/og.png', width: 1200, height: 630, alt: 'KIZZ' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'KIZZ — Сур Сорь Тогло Хөгж',
+    title: 'KIZZ — Өөрийгөө сорь',
     description: DESCRIPTION,
     images: ['/og.png'],
   },

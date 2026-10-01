@@ -26,20 +26,20 @@ const SAMPLE_AVATARS = ['kizz-a', 'kizz-b', 'kizz-c', 'kizz-d', 'kizz-e'].map(
 const STEPS = [
   {
     icon: FileText,
-    title: '1. Тэмдэглэ',
-    text: 'Юу ч сурч байгаагаа бич: хичээл, ном, ажлын мэдлэг, хобби. PDF, зураг хавсаргаж болно.',
+    title: 'Тэмдэглэ',
+    text: 'Хичээл, ном, ажлын тэмдэглэл, хобби гээд сурч буй бүхнээ бичээрэй. PDF, зураг хавсаргахад л хангалттай!',
     bg: 'bg-answer-1',
   },
   {
     icon: Sparkles,
-    title: '2. Сорил болго',
-    text: 'Тэмдэглэлээсээ нэг товшилтоор олон сонголттой асуулт AI-аар үүсгэ.',
+    title: 'Сорил болго',
+    text: 'Ганц товшилтоор тэмдэглэлээ AI-аар сорил болго.',
     bg: 'bg-answer-2',
   },
   {
     icon: Gamepad2,
-    title: '3. Тогло',
-    text: 'Найзуудтайгаа кодоор шууд тоглоод өрсөлд. Оноо, дараалсан өдрийн урамшуулал цуглуулж, дэлгүүрээс аватар авч өмс.',
+    title: 'Тогло',
+    text: 'Кодоор өрөөндөө нэгдэж, найзуудтайгаа өрсөлдөж, оноо, XP цуглуулан түвшин ахиарай!',
     bg: 'bg-answer-3',
   },
 ];
@@ -54,12 +54,14 @@ export function Landing() {
           Сурах хэзээ ч ийм хөгжилтэй байгаагүй
         </span>
         <h1 className="mt-4 text-5xl font-extrabold leading-[1.1] tracking-tight text-ink max-sm:text-4xl">
-          Сур Сорь Тогло <span className="text-violet">Хөгж</span>
+          KIZZ – <span className="text-violet">Өөрийгөө сорь</span>
         </h1>
         <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-soft">
-          KIZZ бол сурагч, оюутан, ажилтан, бие даан сурч байгаа хэн бүхэнд
-          зориулсан суралцах газар. Тэмдэглэлээ бич, нэг товшилтоор quiz болго,
-          найзуудтайгаа өрсөлдөж тогло, хөгж.
+          KIZZ бол сурагч, оюутан, ажилтан гээд шинийг сурч мэдэхийг хүссэн хэн
+          бүхэнд зориулсан ухаалаг сургалтын платформ юм. Хичээлийн эсвэл
+          ажлын тэмдэглэлээ хялбархан бичиж оруулаад, ганцхан товшилтоор мэдлэг
+          сорил (quiz) болгон хувиргаарай. Найзуудтайгаа өрсөлдөж, хөгжилтэй
+          байдлаар тоглонгоо сурах шинэ боломжийг танд олгоно.
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <LinkButton href="/login?mode=signup" variant="primary" size="lg">
@@ -91,15 +93,13 @@ export function Landing() {
 
       <section className="mt-6 flex max-w-4xl flex-wrap items-center justify-between gap-8 rounded-3xl bg-gradient-to-br from-[#16a34a] to-[#0d6b31] p-8 text-white shadow-sm max-sm:p-6">
         <div className="min-w-0 max-w-md">
-          <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
-            Өөрийнхөөрөө
-          </span>
-          <h2 className="mt-3 text-3xl font-extrabold leading-tight">
+          <h2 className="text-3xl font-extrabold leading-tight">
             Аватараа кастомайз хийж, онцгойр
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-white/90">
-            Үс, нүд, ам, дуртай өнгөө, дагалдах зүйлсээ сонгоод өөрийн дүрээ
-            бүтээ. Дараа нь Kizz Coin-оороо дэлгүүрээс шинэ дүр авч гангар.
+            Загвар, өнгөө сонгож өөрийн гэсэн цорын ганц дүрийг бүтээ! Kizz
+            Coin-оо ашиглан дэлгүүрээс шинэ аватар худалдаж авч бусдаас
+            ялгараарай!
           </p>
           <Link
             href="/login?mode=signup"
@@ -122,21 +122,30 @@ export function Landing() {
       </section>
 
       <section className="mt-6 max-w-3xl rounded-3xl border border-line bg-paper-raised p-6">
-        <h2 className="text-xl font-bold text-ink">Ганцаараа ч, хамтдаа ч</h2>
+        <h2 className="text-xl font-bold text-ink">Ганцаараа ч, найзуудтайгаа ч</h2>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          Тэмдэглэл, quiz нь анхнаасаа зөвхөн танд харагдана. Хүсвэл бүлэг үүсгээд
-          кодоо найзууддаа өгч, хамтдаа тэмдэглэл хөтлөх, даалгавар өгөх, дүнгээ
-          харах боломжтой.
+          Таны тэмдэглэл, quiz зөвхөн танд л харагдах хувийн орон зай байх болно.
+          Харин хамтдаа суралцахыг хүсвэл бүлэг үүсгэн кодоо хуваалцаарай.
+          Найзуудтайгаа хамт тэмдэглэл хөтөлж, бие биедээ даалгавар өгч, дүн
+          тавин хамтдаа хөгжөөрөй.
         </p>
       </section>
       <footer className="mt-12 flex max-w-3xl flex-wrap items-center gap-x-5 gap-y-2 border-t border-line pt-5 text-[13px] text-ink-soft">
-        <span>© KIZZ</span>
-        <Link href="/terms" className="hover:text-ink hover:underline">
-          Үйлчилгээний нөхцөл
-        </Link>
-        <Link href="/privacy" className="hover:text-ink hover:underline">
-          Нууцлалын бодлого
-        </Link>
+        <span>© 2026 KIZZ, Inc.</span>
+        <nav aria-label="Нэмэлт холбоос" className="flex flex-wrap gap-x-5 gap-y-2">
+          <Link href="/about" className="hover:text-ink hover:underline">
+            Бидний тухай
+          </Link>
+          <Link href="/contact" className="hover:text-ink hover:underline">
+            Холбоо барих
+          </Link>
+          <Link href="/terms" className="hover:text-ink hover:underline">
+            Үйлчилгээний нөхцөл
+          </Link>
+          <Link href="/privacy" className="hover:text-ink hover:underline">
+            Нууцлалын бодлого
+          </Link>
+        </nav>
       </footer>
     </View>
   );
