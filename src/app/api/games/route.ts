@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, gt } from 'drizzle-orm';
 import { getDb } from '@/db/client';
-import { gameSessions, quizzes } from '@/db/schema';
+import { gamePlayers, gameSessions, quizzes } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
 import { canAccessQuiz } from '@/lib/access';
 import { generateUniqueCode } from '@/lib/codes';
+import { pgErrorCode, UNIQUE_VIOLATION } from '@/lib/dbErrors';
 import { toGameSession } from '@/lib/mappers';
+
+// A group quiz has one shared lobby: while one is still open, everyone in the
+// group who hits "play" lands in it instead of spawning a lobby of their own.
+const SHARED_LOBBY_WINDOW_MS = 30 * 60 * 1000;
 
 // Creates the DB record for a live game and hands back its join code. This
 // only covers the REST surface — actually running a live match (players
@@ -29,6 +34,33 @@ export async function POST(request: Request) {
     .limit(1);
   if (!quiz || !(await canAccessQuiz(quiz, auth.user.id))) {
     return NextResponse.json({ error: 'Quiz олдсонгүй.' }, { status: 404 });
+  }
+
+  if (quiz.groupId) {
+    const [open] = await db
+      .select()
+      .from(gameSessions)
+      .where(
+        and(
+          eq(gameSessions.quizId, quizId),
+          eq(gameSessions.status, 'lobby'),
+          gt(gameSessions.createdAt, new Date(Date.now() - SHARED_LOBBY_WINDOW_MS)),
+        ),
+      )
+      .orderBy(desc(gameSessions.createdAt))
+      .limit(1);
+    if (open) {
+      if (open.createdBy !== auth.user.id) {
+        try {
+          await db
+            .insert(gamePlayers)
+            .values({ gameSessionId: open.id, userId: auth.user.id });
+        } catch (err) {
+          if (pgErrorCode(err) !== UNIQUE_VIOLATION) throw err;
+        }
+      }
+      return NextResponse.json(toGameSession(open), { status: 200 });
+    }
   }
 
   const code = await generateUniqueCode(async (candidate) => {
