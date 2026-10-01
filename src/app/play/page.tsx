@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Globe, Pencil, Play, Trash2 } from 'lucide-react';
+import { BookOpen, Globe, Pencil, Play, Trash2 } from 'lucide-react';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { LibraryPanel } from '@/components/LibraryPanel';
+import { QuizPlayer } from '@/components/QuizPlayer';
 import { QuizEditor } from '@/components/QuizEditor';
 import { Shell, View } from '@/components/Shell';
 import { Button, Card, EmptyState, LinkButton, TextInput } from '@/components/ui';
@@ -24,6 +25,7 @@ export default function PlayPage() {
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<Quiz | null>(null);
   const [tab, setTab] = useState<'mine' | 'library'>('mine');
+  const [practicing, setPracticing] = useState<Quiz | null>(null);
   const [starting, setStarting] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
 
@@ -114,6 +116,16 @@ export default function PlayPage() {
     );
   }
 
+  if (practicing) {
+    return (
+      <Shell activePath="/play">
+        <View narrow>
+          <QuizPlayer quiz={practicing} onBack={() => setPracticing(null)} />
+        </View>
+      </Shell>
+    );
+  }
+
   return (
     <Shell activePath="/play">
       {(starting !== null || joining) && <LoadingScreen fullScreen />}
@@ -196,7 +208,7 @@ export default function PlayPage() {
                   {quizzes
                     .filter((q) => q.title.toLowerCase().includes(query.trim().toLowerCase()))
                     .map((q) => (
-                    <Card key={q.id} className="flex items-center justify-between rounded-lg">
+                    <Card key={q.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg">
                       <div className="min-w-0">
                         <h3 className="truncate text-base">{q.title}</h3>
                         <p className="text-[13px] text-ink-soft">
@@ -208,7 +220,10 @@ export default function PlayPage() {
                           )}
                         </p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button variant="ghost" onClick={() => setPracticing(q)}>
+                          <BookOpen size={15} /> Ганцаараа
+                        </Button>
                         <Button
                           variant="primary"
                           onClick={() => hostGame(q.id)}
