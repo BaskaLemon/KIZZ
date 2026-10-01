@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import {
   gameAnswers,
@@ -30,61 +30,66 @@ export async function loadGameState(
     .limit(1);
   if (!session) return null;
 
-  const [quiz] = await db
-    .select()
-    .from(quizzes)
-    .where(eq(quizzes.id, session.quizId))
-    .limit(1);
+  const onQuestion =
+    session.status === 'active'
+      ? and(
+          eq(gameAnswers.gameSessionId, gameSessionId),
+          eq(gameAnswers.questionIndex, session.currentQuestionIndex),
+        )
+      : undefined;
+
+  // Independent reads run in parallel — this is the hot polling path.
+  const [[quiz], playerRows, answers] = await Promise.all([
+    db.select().from(quizzes).where(eq(quizzes.id, session.quizId)).limit(1),
+    db
+      .select({
+        id: gamePlayers.id,
+        userId: gamePlayers.userId,
+        name: users.name,
+        score: gamePlayers.score,
+        avatarOptions: users.avatarOptions,
+        equippedItemId: users.equippedItemId,
+      })
+      .from(gamePlayers)
+      .innerJoin(users, eq(users.id, gamePlayers.userId))
+      .where(eq(gamePlayers.gameSessionId, gameSessionId))
+      .orderBy(desc(gamePlayers.score)),
+    onQuestion
+      ? db
+          .select({
+            playerId: gameAnswers.playerId,
+            optionIndex: gameAnswers.optionIndex,
+          })
+          .from(gameAnswers)
+          .where(onQuestion)
+      : Promise.resolve([]),
+  ]);
   if (!quiz) return null;
 
-  const playerRows = await db
-    .select({
-      id: gamePlayers.id,
-      userId: gamePlayers.userId,
-      name: users.name,
-      score: gamePlayers.score,
-      avatarOptions: users.avatarOptions,
-      equippedItemId: users.equippedItemId,
-    })
-    .from(gamePlayers)
-    .innerJoin(users, eq(users.id, gamePlayers.userId))
-    .where(eq(gamePlayers.gameSessionId, gameSessionId))
-    .orderBy(desc(gamePlayers.score));
-
   const me = playerRows.find((p) => p.userId === userId);
-
-  let myAnswer: number | null = null;
-  if (me && session.status === 'active') {
-    const [mine] = await db
-      .select({ optionIndex: gameAnswers.optionIndex })
-      .from(gameAnswers)
-      .where(
-        and(
-          eq(gameAnswers.playerId, me.id),
-          eq(gameAnswers.questionIndex, session.currentQuestionIndex),
-        ),
-      )
-      .limit(1);
-    myAnswer = mine ? mine.optionIndex : null;
-  }
+  const myAnswer = me
+    ? (answers.find((a) => a.playerId === me.id)?.optionIndex ?? null)
+    : null;
 
   let myReward: GameState['myReward'] = null;
   if (session.status === 'finished' && me) {
-    const [result] = await db
-      .select({ rank: gameResults.rank, coins: gameResults.awardedPoints })
-      .from(gameResults)
-      .where(and(eq(gameResults.gameSessionId, gameSessionId), eq(gameResults.userId, userId)))
-      .limit(1);
-    const [earned] = await db
-      .select({ xp: sql<number>`coalesce(sum(${pointTransactions.xp}), 0)::int` })
-      .from(pointTransactions)
-      .where(
-        and(
-          eq(pointTransactions.userId, userId),
-          eq(pointTransactions.type, 'quiz_placement'),
-          eq(pointTransactions.referenceId, gameSessionId),
+    const [[result], [earned]] = await Promise.all([
+      db
+        .select({ rank: gameResults.rank, coins: gameResults.awardedPoints })
+        .from(gameResults)
+        .where(and(eq(gameResults.gameSessionId, gameSessionId), eq(gameResults.userId, userId)))
+        .limit(1),
+      db
+        .select({ xp: sql<number>`coalesce(sum(${pointTransactions.xp}), 0)::int` })
+        .from(pointTransactions)
+        .where(
+          and(
+            eq(pointTransactions.userId, userId),
+            eq(pointTransactions.type, 'quiz_placement'),
+            eq(pointTransactions.referenceId, gameSessionId),
+          ),
         ),
-      );
+    ]);
     myReward = {
       rank: result?.rank ?? null,
       coins: result?.coins ?? 0,
@@ -92,33 +97,14 @@ export async function loadGameState(
     };
   }
 
-  let answeredCount = 0;
+  const answeredCount = answers.length;
   let question: GameState['question'] = null;
   if (session.status === 'active') {
-    const [{ value }] = await db
-      .select({ value: count() })
-      .from(gameAnswers)
-      .where(
-        and(
-          eq(gameAnswers.gameSessionId, gameSessionId),
-          eq(gameAnswers.questionIndex, session.currentQuestionIndex),
-        ),
-      );
-    answeredCount = value;
     const q = quiz.questions[session.currentQuestionIndex];
     question = { prompt: q.prompt, options: q.options };
     if (session.revealed) {
-      const answered = await db
-        .select({ optionIndex: gameAnswers.optionIndex })
-        .from(gameAnswers)
-        .where(
-          and(
-            eq(gameAnswers.gameSessionId, gameSessionId),
-            eq(gameAnswers.questionIndex, session.currentQuestionIndex),
-          ),
-        );
       const tally = q.options.map(
-        (_, i) => answered.filter((a) => a.optionIndex === i).length,
+        (_, i) => answers.filter((a) => a.optionIndex === i).length,
       );
       question = { ...question, correctIndex: q.correctIndex, tally };
     }
@@ -136,6 +122,7 @@ export async function loadGameState(
     questionStartedAt: session.questionStartedAt
       ? session.questionStartedAt.toISOString()
       : null,
+    serverNow: new Date().toISOString(),
     revealed: session.revealed,
     question,
     myAnswer,

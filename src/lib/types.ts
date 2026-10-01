@@ -91,6 +91,8 @@ export interface GameState {
   currentQuestionIndex: number;
   totalQuestions: number;
   questionStartedAt: string | null;
+  /** Server clock (ISO) when this snapshot was built — lets clients correct for clock skew. */
+  serverNow: string;
   revealed: boolean;
   question: GameQuestionView | null;
   /** The caller's own chosen option for the current question, if any. */

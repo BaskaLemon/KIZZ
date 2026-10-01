@@ -62,24 +62,45 @@ export default function PlayGamePage({
   const toast = useToast();
   const [state, setState] = useState<GameState | null>(null);
   const [busy, setBusy] = useState(false);
+  // Shown instantly on tap, before the server confirms the answer.
+  const [pending, setPending] = useState<{ q: number; option: number } | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Server clock minus client clock. Deadlines come from the server, so the
+  // timer and the host's auto-reveal must not trust this device's own clock.
+  const clockOffsetRef = useRef(0);
+  const requestSeqRef = useRef(0);
+  const appliedSeqRef = useRef(0);
+
+  /** Starts a request; its result may only be applied if nothing newer has
+   * been applied since (a slow poll must never overwrite a fresher state). */
+  const nextSeq = () => ++requestSeqRef.current;
+  const commit = (s: GameState, seq: number) => {
+    if (seq <= appliedSeqRef.current) return;
+    appliedSeqRef.current = seq;
+    clockOffsetRef.current = new Date(s.serverNow).getTime() - Date.now();
+    setState(s);
+  };
+  const serverNow = () => Date.now() + clockOffsetRef.current;
 
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Sequential loop: the next poll is scheduled only after the previous one
+    // finished, so a slow server can't pile up overlapping requests.
     async function poll() {
+      const seq = nextSeq();
       try {
         const s = await api.getGameState(gameId);
-        if (!cancelled) setState(s);
+        if (!cancelled) commit(s, seq);
       } catch {
         // Transient poll failures are ignored — the next tick retries.
       }
+      if (!cancelled) timer = setTimeout(poll, POLL_MS);
     }
     poll();
-    pollRef.current = setInterval(poll, POLL_MS);
     return () => {
       cancelled = true;
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (timer) clearTimeout(timer);
     };
   }, [gameId]);
 
@@ -91,7 +112,7 @@ export default function PlayGamePage({
       return;
     }
     const tick = () => {
-      const elapsed = Date.now() - new Date(startedAt).getTime();
+      const elapsed = serverNow() - new Date(startedAt).getTime();
       setSecondsLeft(Math.max(0, Math.ceil((ANSWER_WINDOW_MS - elapsed) / 1000)));
     };
     tick();
@@ -107,12 +128,13 @@ export default function PlayGamePage({
   useEffect(() => {
     if (!isHost || !activeUnrevealed || !startedAt) return;
     const remaining =
-      new Date(startedAt).getTime() + ANSWER_WINDOW_MS - Date.now();
+      new Date(startedAt).getTime() + ANSWER_WINDOW_MS - serverNow();
     const id = setTimeout(
       () => {
+        const seq = nextSeq();
         api
           .revealGame(gameId)
-          .then(setState)
+          .then((s) => commit(s, seq))
           .catch(() => {
             // Already revealed manually — the next poll picks that up.
           });
@@ -135,18 +157,21 @@ export default function PlayGamePage({
   useEffect(() => {
     if (!isHost || !activeUnrevealed || playerCount === 0) return;
     if (answeredCount < playerCount) return;
+    const seq = nextSeq();
     api
       .revealGame(gameId)
-      .then(setState)
+      .then((s) => commit(s, seq))
       .catch(() => {
         // Already revealed — the next poll picks that up.
       });
   }, [isHost, activeUnrevealed, answeredCount, playerCount, questionIndex, gameId]);
 
-  async function act<T>(fn: () => Promise<T>) {
+  async function act(fn: () => Promise<GameState>) {
     setBusy(true);
+    const seq = nextSeq();
     try {
       const result = await fn();
+      commit(result, seq);
       return result;
     } catch (err) {
       toast((err as ApiError).payload?.error || 'Алдаа гарлаа', 'error');
@@ -157,24 +182,21 @@ export default function PlayGamePage({
   }
 
   async function handlePlayAlong(play: boolean) {
-    const s = await act(() => (play ? api.joinGame(gameId) : api.leaveGame(gameId)));
-    if (s) setState(s);
+    await act(() => (play ? api.joinGame(gameId) : api.leaveGame(gameId)));
   }
   async function handleStart() {
-    const s = await act(() => api.startGame(gameId));
-    if (s) setState(s);
+    await act(() => api.startGame(gameId));
   }
   async function handleAnswer(optionIndex: number) {
-    const s = await act(() => api.answerGame(gameId, optionIndex));
-    if (s) setState(s);
+    setPending({ q: state?.currentQuestionIndex ?? 0, option: optionIndex });
+    const result = await act(() => api.answerGame(gameId, optionIndex));
+    if (!result) setPending(null);
   }
   async function handleReveal() {
-    const s = await act(() => api.revealGame(gameId));
-    if (s) setState(s);
+    await act(() => api.revealGame(gameId));
   }
   async function handleNext() {
-    const s = await act(() => api.nextGame(gameId));
-    if (s) setState(s);
+    await act(() => api.nextGame(gameId));
   }
 
   if (!state) {
@@ -184,6 +206,10 @@ export default function PlayGamePage({
       </StageScreen>
     );
   }
+
+  const myChoice =
+    state.myAnswer ??
+    (pending && pending.q === state.currentQuestionIndex ? pending.option : null);
 
   return (
     <StageScreen immersive={state.status === 'active'}>
@@ -247,8 +273,8 @@ export default function PlayGamePage({
                       key={i}
                       index={i}
                       label={opt}
-                      chosen={state.myAnswer === i}
-                      disabled={state.myAnswer !== null || busy}
+                      chosen={myChoice === i}
+                      disabled={myChoice !== null || busy}
                       onClick={() => handleAnswer(i)}
                     />
                   ) : (
@@ -272,14 +298,14 @@ export default function PlayGamePage({
                   key={i}
                   index={i}
                   label={opt}
-                  chosen={state.myAnswer === i}
-                  disabled={state.myAnswer !== null || busy}
+                  chosen={myChoice === i}
+                  disabled={myChoice !== null || busy}
                   onClick={() => handleAnswer(i)}
                 />
               ))}
             </AnswerGrid>
           )}
-          {state.isPlayer && state.myAnswer !== null && (
+          {state.isPlayer && myChoice !== null && (
             <p className="text-ink-soft">Хариулт илгээгдлээ, хариу хүлээж байна...</p>
           )}
         </div>

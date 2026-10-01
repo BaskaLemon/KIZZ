@@ -98,7 +98,7 @@ export function AnswerOption({
         'text-white',
         !interactive && 'cursor-default',
         dimmed && 'opacity-35',
-        chosen && 'outline outline-4 outline-ink',
+        chosen && 'outline outline-4 outline-white ring-4 ring-ink',
         correct && 'outline outline-4 outline-mint',
       )}
     >
@@ -112,6 +112,11 @@ export function AnswerOption({
         {label}
         {correct ? ' ✓' : ''}
       </span>
+      {chosen && (
+        <span className="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-bold text-black">
+          Таны хариулт
+        </span>
+      )}
       {count !== undefined && (
         <span className="ml-auto min-w-9 shrink-0 rounded-full bg-black/25 px-3 py-1 text-center text-base font-bold">
           {count}
