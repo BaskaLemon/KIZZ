@@ -231,8 +231,12 @@ export const api = {
       name: string;
       color: string;
       description: string | null;
+      /** Owner only. */
+      archived: boolean;
     }>,
   ) => request<Class>('PATCH', `/classes/${id}`, patch),
+  resetClassCode: (id: string) =>
+    request<{ code: string }>('POST', `/classes/${id}/code`),
   // Teachers can also join another teacher's class by code, as a
   // full co-teacher — same call, the backend branches on role.
   joinClass: (code: string) => request<Class>('POST', '/classes/join', { code }),
@@ -267,7 +271,7 @@ export const api = {
     request('DELETE', `/note-attachments/${attachmentId}`),
   updateAssignment: (
     assignmentId: string,
-    patch: { title?: string; dueAt?: string | null },
+    patch: { title?: string; description?: string | null; dueAt?: string | null },
   ) => request<Assignment>('PATCH', `/assignments/${assignmentId}`, patch),
   getGrades: (classId: string) =>
     request<ClassGrades>('GET', `/classes/${classId}/grades`),
@@ -282,6 +286,7 @@ export const api = {
     classId: string,
     payload: {
       title: string;
+      description?: string;
       dueAt: string | null;
       /** Optional — an assignment can have no quiz (plain instructional
        * item, no auto-grading). */
@@ -294,14 +299,26 @@ export const api = {
       `/classes/${classId}/assignments`,
       {
         title: payload.title,
+        description: payload.description,
         dueAt: payload.dueAt ?? undefined,
         quizId: payload.quizId,
       },
       payload.file,
     ),
   getAssignment: (id: string) => request<AssignmentDetail>('GET', `/assignments/${id}`),
-  submitAssignment: (id: string, payload: { answers: (number | null)[] }) =>
-    request<SubmitResult>('POST', `/assignments/${id}/submit`, payload),
+  submitAssignment: (
+    id: string,
+    payload: {
+      answers: (number | null)[];
+      /** Optional — the member's own work. Replaces one sent earlier. */
+      file?: File | null;
+    },
+  ) =>
+    postForm<SubmitResult>(
+      `/assignments/${id}/submit`,
+      { answers: JSON.stringify(payload.answers) },
+      payload.file,
+    ),
   listSubmissions: (assignmentId: string) =>
     request<Submission[]>('GET', `/assignments/${assignmentId}/submissions`),
   gradeSubmission: (submissionId: string, score: number) =>

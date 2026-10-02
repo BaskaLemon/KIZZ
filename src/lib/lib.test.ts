@@ -13,7 +13,8 @@ import { BADGES, BADGE_BY_KEY } from '@/lib/badges';
 import { normalizeMime } from '@/lib/materials';
 import { matchesSignature } from '@/lib/fileSignature';
 import { rateLimit, resetRateLimits } from '@/lib/rateLimit';
-import { optionalText } from '@/lib/text';
+import { formatSize, optionalText } from '@/lib/text';
+import { dueDateInput, dueInputValue, dueTimeInput, formatDue, parseDueInput } from '@/lib/dueDate';
 import { randomCode } from '@/lib/codes';
 
 describe('levelForXp', () => {
@@ -124,5 +125,37 @@ describe('badge catalogue', () => {
     for (const key of ['first_note', 'first_quiz', 'team_player', 'first_win', 'perfect_score', 'streak_7', 'streak_30', 'level_5', 'level_10', 'popular_author']) {
       expect(BADGE_BY_KEY.has(key)).toBe(true);
     }
+  });
+});
+
+describe('due dates', () => {
+  it('a date alone means the end of that day in Ulaanbaatar', () => {
+    const due = parseDueInput(dueInputValue('2026-10-05', ''))!;
+    expect(due.toISOString()).toBe('2026-10-05T15:59:59.000Z');
+    expect(dueDateInput(due.toISOString())).toBe('2026-10-05');
+    expect(dueTimeInput(due.toISOString())).toBe('');
+  });
+  it('a date and time round-trip through the inputs', () => {
+    const due = parseDueInput(dueInputValue('2026-10-05', '18:30'))!;
+    expect(due.toISOString()).toBe('2026-10-05T10:30:00.000Z');
+    expect(dueDateInput(due.toISOString())).toBe('2026-10-05');
+    expect(dueTimeInput(due.toISOString())).toBe('18:30');
+  });
+  it('no date means no deadline, even with a time', () => {
+    expect(dueInputValue('', '18:30')).toBeNull();
+    expect(parseDueInput(null)).toBeNull();
+    expect(parseDueInput('not a date')).toBeUndefined();
+  });
+  it('the label shows a time only when one was picked', () => {
+    expect(formatDue(new Date('2026-10-05T23:59:59+08:00'))).not.toContain(':');
+    expect(formatDue(new Date('2026-10-05T18:00:00+08:00'))).toEndWith(', 18:00');
+  });
+});
+
+describe('formatSize', () => {
+  it('picks a readable unit', () => {
+    expect(formatSize(812)).toBe('812 B');
+    expect(formatSize(45 * 1024)).toBe('45 KB');
+    expect(formatSize(1.25 * 1024 * 1024)).toBe('1.3 MB');
   });
 });

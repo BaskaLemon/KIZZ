@@ -138,6 +138,10 @@ export interface Class {
   /** One of CLASS_COLORS' keys, see src/lib/classColor.ts. */
   color: string;
   description: string | null;
+  /** Set once an admin archives the group: it drops out of the main list
+   * and no new work (assignments, submissions, files, announcements) can be
+   * added. */
+  archivedAt: string | null;
   createdAt: string;
   /** Enrolled student count. Only populated by GET /classes/:id. */
   memberCount?: number;
@@ -240,6 +244,8 @@ export interface Assignment {
   /** Null when no file was attached at creation. */
   materialId: string | null;
   title: string;
+  /** Instructions for members; null when the admin wrote none. */
+  description: string | null;
   dueAt: string | null;
   createdAt: string;
   /** Populated for students by the list endpoint, so a "Done" badge can
@@ -265,6 +271,8 @@ export interface Submission {
   /** Null until graded — always the case for a quiz-less assignment unless
    * the teacher enters a grade manually. */
   score: number | null;
+  /** The member's own attached file, if they added one. */
+  materialId: string | null;
   submittedAt: string;
   /** Submitted after the due date. Only set by the admin's list endpoint. */
   late?: boolean;

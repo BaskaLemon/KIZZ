@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { getDb } from '@/db/client';
 import {
@@ -20,6 +21,16 @@ export async function isGroupMember(
     )
     .limit(1);
   return !!row;
+}
+
+/** Ready-to-return 409 when `klass` is archived (no new assignments,
+ * submissions, files or announcements), otherwise null. */
+export function archivedGuard(klass: Pick<ClassRow, 'archivedAt'>): NextResponse | null {
+  if (!klass.archivedAt) return null;
+  return NextResponse.json(
+    { error: 'Энэ бүлэг архивлагдсан тул шинээр нэмэх боломжгүй.' },
+    { status: 409 },
+  );
 }
 
 export interface ClassMembership {

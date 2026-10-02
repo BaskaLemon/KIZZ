@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/db/client';
 import { classPosts } from '@/db/schema';
 import { requireUser } from '@/lib/auth/requireUser';
-import { getClassMembership } from '@/lib/access';
+import { archivedGuard, getClassMembership } from '@/lib/access';
 import { classStudentIds, notifyUsers } from '@/lib/notifications';
 import { MAX_POST_LENGTH, loadPosts } from '@/lib/posts';
 import { rateLimit } from '@/lib/rateLimit';
@@ -36,6 +36,8 @@ export async function POST(request: Request, { params }: Params) {
       { status: 403 },
     );
   }
+  const archived = archivedGuard(klass);
+  if (archived) return archived;
   const limited = rateLimit(`post:${auth.user.id}`, 20, 10 * 60_000);
   if (limited) return limited;
 

@@ -88,7 +88,15 @@ function Composer({
 }
 
 /** Announcements from the group's admins, with member comments. */
-export function ClassPosts({ classId, isAdmin }: { classId: string; isAdmin: boolean }) {
+export function ClassPosts({
+  classId,
+  isAdmin,
+  archived,
+}: {
+  classId: string;
+  isAdmin: boolean;
+  archived: boolean;
+}) {
   const toast = useToast();
   const confirm = useConfirm();
   const [posts, setPosts] = useState<ClassPost[] | null>(null);
@@ -133,7 +141,7 @@ export function ClassPosts({ classId, isAdmin }: { classId: string; isAdmin: boo
     <section aria-label="Зарлал">
       <h3 className="mb-2.5 text-lg">Зарлал</h3>
 
-      {isAdmin && (
+      {isAdmin && !archived && (
         <Card className="mb-4 rounded-lg">
           <Composer
             placeholder="Бүлгийнхээ гишүүдэд зарлал бичих..."

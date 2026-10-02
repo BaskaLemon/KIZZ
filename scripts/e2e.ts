@@ -176,6 +176,66 @@ r = await call(tokA, 'POST', `/classes/${klass?.id}/materials`, undefined, fmat)
 r = await call(tokB, 'GET', `/materials/${mat?.id}`); check('member downloads material', r.status === 200, r.status);
 r = await call(tokB, 'DELETE', `/materials/${mat?.id}`); check('member cannot delete material (403)', r.status === 403, r.status);
 
+// --- assignment instructions, due times, members' files
+const txt = (name: string, body = 'work') => new File([body], name, { type: 'text/plain' });
+const fi = new FormData(); fi.append('title', 'Essay'); fi.append('description', '  Write one page.  '); fi.append('dueAt', '2099-01-01T18:30:00+08:00'); fi.append('file', txt('brief.txt'));
+r = await call(tokA, 'POST', `/classes/${klass?.id}/assignments`, undefined, fi); const essay = r.data;
+check('assignment with instructions, due time and file', r.status === 201 && essay?.description === 'Write one page.' && essay?.dueAt === '2099-01-01T10:30:00.000Z' && !!essay?.materialId, r.data);
+const flong = new FormData(); flong.append('title', 'Long'); flong.append('description', 'x'.repeat(2001));
+r = await call(tokA, 'POST', `/classes/${klass?.id}/assignments`, undefined, flong); check('too-long instructions rejected (400)', r.status === 400, r.status);
+r = await call(tokB, 'GET', `/assignments/${essay?.id}`); check('member sees instructions', r.data?.description === 'Write one page.', r.data);
+r = await call(tokA, 'PATCH', `/assignments/${essay?.id}`, { description: 'Two pages.' }); check('admin edits instructions', r.status === 200 && r.data?.description === 'Two pages.', r.data);
+r = await call(tokA, 'PATCH', `/assignments/${essay?.id}`, { description: '' }); check('empty instructions clear them', r.status === 200 && r.data?.description === null, r.data);
+r = await call(tokC, 'POST', '/classes/join', { code: klass?.code }); check('C joins to test file privacy', r.status === 200, r);
+const fw1 = new FormData(); fw1.append('answers', '[]'); fw1.append('file', txt('mine.txt', 'v1'));
+r = await call(tokB, 'POST', `/assignments/${essay?.id}/submit`, undefined, fw1); check('member submits with a file', r.status === 201, r);
+r = await call(tokA, 'GET', `/assignments/${essay?.id}/submissions`); const work1 = r.data?.[0]?.materialId;
+check('admin sees the submitted file', !!work1, r.data);
+check('admin downloads the submitted file', (await call(tokA, 'GET', `/materials/${work1}`)).status === 200);
+check('owner downloads their own file', (await call(tokB, 'GET', `/materials/${work1}`)).status === 200);
+check('another member cannot download it (404)', (await call(tokC, 'GET', `/materials/${work1}`)).status === 404);
+r = await call(tokB, 'GET', `/classes/${klass?.id}/materials`); check('submitted work stays out of the materials list', !r.data?.some((m: any) => m.id === work1) && r.data?.some((m: any) => m.id === essay?.materialId), r.data);
+check('admin cannot delete a submitted file (403)', (await call(tokA, 'DELETE', `/materials/${work1}`)).status === 403);
+const fw2 = new FormData(); fw2.append('answers', '[]'); fw2.append('file', txt('mine2.txt', 'v2'));
+r = await call(tokB, 'POST', `/assignments/${essay?.id}/submit`, undefined, fw2); check('resubmit with a new file', r.status === 200, r);
+r = await call(tokA, 'GET', `/assignments/${essay?.id}/submissions`); const work2 = r.data?.[0]?.materialId;
+check('new file replaces the old one', !!work2 && work2 !== work1 && (await call(tokB, 'GET', `/materials/${work1}`)).status === 404, { work1, work2 });
+r = await call(tokB, 'POST', `/assignments/${essay?.id}/submit`); check('resubmit without a file', r.status === 200, r);
+r = await call(tokA, 'GET', `/assignments/${essay?.id}/submissions`); check('and the earlier file is kept', r.data?.[0]?.materialId === work2, r.data);
+const fq = new FormData(); fq.append('title', 'Form quiz'); fq.append('quizId', gq?.id);
+const formQuiz = (await call(tokA, 'POST', `/classes/${klass?.id}/assignments`, undefined, fq)).data;
+const fqa = new FormData(); fqa.append('answers', JSON.stringify(gq?.questions.map((q: any) => q.correctIndex)));
+r = await call(tokB, 'POST', `/assignments/${formQuiz?.id}/submit`, undefined, fqa); check('quiz answers as form data are scored', r.status === 201 && r.data?.score === 100, r.data);
+r = await call(tokA, 'DELETE', `/materials/${essay?.materialId}`); check('admin deletes a file attached to an assignment', r.status === 200, r);
+r = await call(tokB, 'GET', `/assignments/${essay?.id}`); check('the assignment just loses the attachment', r.status === 200 && r.data?.materialId === null, r.data);
+r = await call(tokA, 'DELETE', `/assignments/${essay?.id}`); check('deleting the assignment removes members\' files', r.status === 200 && (await call(tokA, 'GET', `/materials/${work2}`)).status === 404, r);
+await call(tokA, 'DELETE', `/assignments/${formQuiz?.id}`);
+
+// --- join code reset
+const oldCode = klass?.code;
+r = await call(tokB, 'POST', `/classes/${klass?.id}/code`); check('member cannot reset the code (403)', r.status === 403, r);
+r = await call(tokA, 'POST', `/classes/${klass?.id}/code`); check('owner resets the code', r.status === 200 && !!r.data?.code && r.data.code !== oldCode, r.data);
+klass.code = r.data?.code;
+r = await call(tokA, 'GET', `/classes/${klass?.id}`); check('group shows the new code', r.data?.code === klass.code, r.data);
+r = await call(tokD, 'POST', '/classes/join', { code: oldCode }); check('old code stops working (404)', r.status === 404, r);
+check('current members stay', (await call(tokC, 'GET', `/classes/${klass?.id}`)).status === 200);
+
+// --- archiving
+r = await call(tokB, 'PATCH', `/classes/${klass?.id}`, { archived: true }); check('member cannot archive (403)', r.status === 403, r);
+r = await call(tokA, 'PATCH', `/classes/${klass?.id}`, { archived: 'yes' }); check('archived must be a boolean (400)', r.status === 400, r);
+r = await call(tokA, 'PATCH', `/classes/${klass?.id}`, { archived: true }); check('owner archives the group', r.status === 200 && !!r.data?.archivedAt, r.data);
+r = await call(tokB, 'GET', '/me/classes'); check('members see it as archived', r.data?.find((c: any) => c.id === klass?.id)?.archivedAt, r.data);
+const farch = new FormData(); farch.append('title', 'Nope');
+check('archived: no new assignments (409)', (await call(tokA, 'POST', `/classes/${klass?.id}/assignments`, undefined, farch)).status === 409);
+const fmat2 = new FormData(); fmat2.append('file', txt('b.txt'));
+check('archived: no new files (409)', (await call(tokA, 'POST', `/classes/${klass?.id}/materials`, undefined, fmat2)).status === 409);
+check('archived: no new announcements (409)', (await call(tokA, 'POST', `/classes/${klass?.id}/posts`, { body: 'hi' })).status === 409);
+check('archived: no submissions (409)', (await call(tokB, 'POST', `/assignments/${asg?.id}/submit`, { answers: [] })).status === 409);
+check('archived: nobody new can join (409)', (await call(tokD, 'POST', '/classes/join', { code: klass?.code })).status === 409);
+check('archived: still readable', (await call(tokB, 'GET', `/classes/${klass?.id}/assignments`)).status === 200);
+r = await call(tokA, 'PATCH', `/classes/${klass?.id}`, { archived: false }); check('owner restores the group', r.status === 200 && r.data?.archivedAt === null, r.data);
+check('C leaves again', (await call(tokC, 'DELETE', `/classes/${klass?.id}/membership`)).status === 200);
+
 // --- live game + economy
 async function runGame(hostTok: string, quizId: string, players: { tok: string; picks: (number | null)[] }[]) {
   const g = (await call(hostTok, 'POST', '/games', { quizId })).data;

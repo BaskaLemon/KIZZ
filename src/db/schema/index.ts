@@ -308,6 +308,9 @@ export const classMaterials = pgTable('class_materials', {
   mimeType: text('mime_type').notNull(),
   sizeBytes: integer('size_bytes').notNull(),
   data: text('data').notNull(),
+  // A member's own work attached to a submission. Never listed with the
+  // group's materials, and only its uploader and the admins can download it.
+  isSubmission: boolean('is_submission').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -363,6 +366,8 @@ export const assignments = pgTable('assignments', {
   // than duplicating file storage).
   materialId: uuid('material_id').references(() => classMaterials.id),
   title: text('title').notNull(),
+  // Instructions shown to members when they open the assignment.
+  description: text('description'),
   dueAt: timestamp('due_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()

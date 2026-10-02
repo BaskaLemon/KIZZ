@@ -105,6 +105,18 @@ export async function PATCH(request: Request, { params }: Params) {
     }
     patch.description = description;
   }
+  if ('archived' in body) {
+    if (typeof body.archived !== 'boolean') {
+      return NextResponse.json({ error: 'Буруу хүсэлт.' }, { status: 400 });
+    }
+    if (klass.teacherId !== auth.user.id) {
+      return NextResponse.json(
+        { error: 'Зөвхөн бүлгийг үүсгэсэн хүн архивлах боломжтой.' },
+        { status: 403 },
+      );
+    }
+    patch.archivedAt = body.archived ? (klass.archivedAt ?? new Date()) : null;
+  }
 
   const [row] =
     Object.keys(patch).length === 0

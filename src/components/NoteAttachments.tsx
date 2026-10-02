@@ -5,13 +5,8 @@ import { FileText, Image as ImageIcon, Loader2, UploadCloud, X } from 'lucide-re
 import { api } from '@/lib/api';
 import { useToast } from '@/lib/toast';
 import { useConfirm } from '@/lib/confirm';
+import { formatSize } from '@/lib/text';
 import type { ApiError, NoteAttachment } from '@/lib/types';
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 /** Files attached to a note. Uploads immediately (no draft state) and lists
  * what's stored; auth is a bearer token so downloads go through fetch+Blob. */

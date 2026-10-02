@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { AttachmentLink } from '@/components/AttachmentLink';
 import { api } from '@/lib/api';
+import { cx } from '@/lib/cx';
 import { useToast } from '@/lib/toast';
-import type { ApiError, Submission } from '@/lib/types';
+import type { ApiError, Quiz, Submission } from '@/lib/types';
+import { QuizReview } from './QuizReview';
 
 function scoreClass(score: number) {
   if (score >= 80) return 'bg-mint';
@@ -74,15 +77,35 @@ function GradeEntry({
   );
 }
 
+/** What a member handed in: their quiz answers and/or attached file. */
+function SubmissionDetail({ submission, quiz }: { submission: Submission; quiz: Quiz | null }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-xl bg-paper p-3">
+      {submission.materialId ? (
+        <AttachmentLink materialId={submission.materialId} label="Илгээсэн файл татах" />
+      ) : (
+        !quiz && <p className="text-[13px] text-ink-soft">Файл хавсаргаагүй.</p>
+      )}
+      {quiz && (
+        <QuizReview questions={quiz.questions} answers={submission.answers} reveal />
+      )}
+    </div>
+  );
+}
+
 export function Gradebook({ assignmentId }: { assignmentId: string }) {
   const toast = useToast();
   const [submissions, setSubmissions] = useState<Submission[] | null>(null);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   useEffect(() => {
-    api
-      .listSubmissions(assignmentId)
-      .then(setSubmissions)
+    Promise.all([api.listSubmissions(assignmentId), api.getAssignment(assignmentId)])
+      .then(([list, detail]) => {
+        setSubmissions(list);
+        setQuiz(detail.quiz);
+      })
       .catch((err: ApiError) => {
         toast(
           err.payload?.error || 'Дүнгийн самбарыг ачаалж чадсангүй',
@@ -122,56 +145,83 @@ export function Gradebook({ assignmentId }: { assignmentId: string }) {
         {graded.length < submissions.length &&
           ` · ${submissions.length - graded.length} дүн ороогүй`}
       </p>
-      <table className="mt-2 w-full border-collapse">
-        <thead>
-          <tr>
-            <th className="border-b-2 border-line px-3 py-2.5 text-left text-[13px] text-ink-soft">
-              Гишүүн
-            </th>
-            <th className="border-b-2 border-line px-3 py-2.5 text-left text-[13px] text-ink-soft">
-              Дүн
-            </th>
-            <th className="border-b-2 border-line px-3 py-2.5 text-left text-[13px] text-ink-soft">
-              Илгээсэн
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {submissions.map((s) => (
-            <tr key={s.id}>
-              <td className="border-b-2 border-line px-3 py-2.5">
-                {s.studentName}
-              </td>
-              <td className="border-b-2 border-line px-3 py-2.5">
-                {s.score === null || editingId === s.id ? (
-                  <GradeEntry
-                    submission={s}
-                    onGraded={handleGraded}
-                    onCancel={s.score === null ? undefined : () => setEditingId(null)}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(s.id)}
-                    title="Дүнг засах"
-                    className={`inline-block rounded-full px-2.5 py-0.75 text-[13px] font-bold ${scoreClass(s.score)}`}
-                  >
-                    {s.score}%
-                  </button>
-                )}
-              </td>
-              <td className="border-b-2 border-line px-3 py-2.5">
-                {new Date(s.submittedAt).toLocaleString()}
-                {s.late && (
-                  <span className="ml-2 rounded-full bg-coral/15 px-2 py-0.5 text-[12px] font-semibold text-coral">
-                    Хоцорсон
-                  </span>
-                )}
-              </td>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="border-b-2 border-line px-3 py-2.5 text-left text-[13px] text-ink-soft">
+                Гишүүн
+              </th>
+              <th className="border-b-2 border-line px-3 py-2.5 text-left text-[13px] text-ink-soft">
+                Дүн
+              </th>
+              <th className="border-b-2 border-line px-3 py-2.5 text-left text-[13px] text-ink-soft">
+                Илгээсэн
+              </th>
+              <th className="border-b-2 border-line px-3 py-2.5">
+                <span className="sr-only">Дэлгэрэнгүй</span>
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {submissions.map((s) => {
+              const viewing = viewingId === s.id;
+              return (
+                <Fragment key={s.id}>
+                  <tr>
+                    <td className={cx('px-3 py-2.5', !viewing && 'border-b-2 border-line')}>
+                      {s.studentName}
+                    </td>
+                    <td className={cx('px-3 py-2.5', !viewing && 'border-b-2 border-line')}>
+                      {s.score === null || editingId === s.id ? (
+                        <GradeEntry
+                          submission={s}
+                          onGraded={handleGraded}
+                          onCancel={s.score === null ? undefined : () => setEditingId(null)}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(s.id)}
+                          title="Дүнг засах"
+                          className={`inline-block rounded-full px-2.5 py-0.75 text-[13px] font-bold ${scoreClass(s.score)}`}
+                        >
+                          {s.score}%
+                        </button>
+                      )}
+                    </td>
+                    <td className={cx('px-3 py-2.5', !viewing && 'border-b-2 border-line')}>
+                      {new Date(s.submittedAt).toLocaleString()}
+                      {s.late && (
+                        <span className="ml-2 rounded-full bg-coral/15 px-2 py-0.5 text-[12px] font-semibold text-coral">
+                          Хоцорсон
+                        </span>
+                      )}
+                    </td>
+                    <td className={cx('px-3 py-2.5 text-right', !viewing && 'border-b-2 border-line')}>
+                      <button
+                        type="button"
+                        onClick={() => setViewingId(viewing ? null : s.id)}
+                        aria-expanded={viewing}
+                        className="rounded-full border-2 border-line px-3 py-1 text-[12px] font-semibold text-ink-soft transition-colors hover:border-ink hover:text-ink"
+                      >
+                        {viewing ? 'Хаах' : 'Харах'}
+                      </button>
+                    </td>
+                  </tr>
+                  {viewing && (
+                    <tr>
+                      <td colSpan={4} className="border-b-2 border-line px-3 pb-3">
+                        <SubmissionDetail submission={s} quiz={quiz} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }
